@@ -1,7 +1,7 @@
 package ru.clevertec.data.entity;
 
 import java.math.BigDecimal;
-import java.util.Date;
+import java.time.LocalDate;
 import lombok.Data;
 
 @Data
@@ -12,5 +12,6 @@ public class Account {
     private Bank bank;
     private BigDecimal amount;
     private Currency currency;
-    private Date openTime;
+    private LocalDate openTime;
+    private boolean deleted;
 }

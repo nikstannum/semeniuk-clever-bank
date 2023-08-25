@@ -1,9 +1,11 @@
 plugins {
     id 'java'
+    id 'war'
 }
 
 group = 'ru.clevertec'
 version = '1.0-SNAPSHOT'
+
 
 repositories {
     mavenCentral()
@@ -19,8 +21,20 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok:1.18.28'
 
     implementation 'org.yaml:snakeyaml:2.1'
+
+    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
 }
 
 test {
     useJUnitPlatform()
+}
+
+war {
+    archiveFileName = 'clever-bank.war'
+    final String targetDir = System.getenv('TOMCAT_HOME')
+    destinationDirectory = file("${targetDir}/webapps")
 }

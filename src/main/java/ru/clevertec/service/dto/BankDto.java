@@ -1,11 +1,10 @@
-package ru.clevertec.data.entity;
+package ru.clevertec.service.dto;
 
 import lombok.Data;
 
 @Data
-public class Bank {
+public class BankDto {
     private Long id;
     private String name;
     private String bankIdentifier;
-    private boolean deleted;
 }

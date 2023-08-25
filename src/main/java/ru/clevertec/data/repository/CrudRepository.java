@@ -9,10 +9,10 @@ public interface CrudRepository<T, K> {
 
     Optional<T> findById(K id);
 
-    List<T> findAll(int page, int size);
+    List<T> findAll(int limit, long offset);
 
     T update(T entity);
 
-    boolean delete(K id);
+    boolean deleteById(K id);
 
 }

@@ -35,11 +35,11 @@ public class DataSource implements AutoCloseable {
     private void init() {
         ConfigManager props = ConfigManager.INSTANCE;
         try {
-            Map<String, String> dbPropsMap = (Map<String, String>) props.getProperty("db");
-            Class.forName(dbPropsMap.get("driver"));
-            Connection realConnection = DriverManager.getConnection(dbPropsMap.get("url"),
-                    dbPropsMap.get("user"), dbPropsMap.get("password"));
-            poolSize = Integer.parseInt(dbPropsMap.get("pool-size"));
+            Map<String, Object> dbPropsMap = (Map<String, Object>) props.getProperty("db");
+            Class.forName((String) dbPropsMap.get("driver"));
+            Connection realConnection = DriverManager.getConnection((String) dbPropsMap.get("url"),
+                    (String) dbPropsMap.get("user"), (String) dbPropsMap.get("password"));
+            poolSize = (Integer) dbPropsMap.get("pool-size");
             freeConnections = new LinkedBlockingDeque<>(poolSize);
             givenAwayConnections = new ArrayDeque<>();
             for (int i = 0; i < poolSize; i++) {

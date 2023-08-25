@@ -2,6 +2,7 @@ package ru.clevertec.data.factory;
 
 import java.util.HashMap;
 import java.util.Map;
+import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.data.repository.BankRepository;
 import ru.clevertec.data.repository.CrudRepository;
@@ -18,11 +19,12 @@ public class DaoFactory {
     private final Map<Class<?>, CrudRepository<?, ?>> map;
 
     private DaoFactory() {
+        DataSource dataSource = DataSource.INSTANCE;
         this.map = new HashMap<>();
-        map.put(AccountRepository.class, new AccountRepositoryImpl());
-        map.put(BankRepository.class, new BankRepositoryImpl());
-        map.put(TransactionRepository.class, new TransactionRepositoryImpl());
-        map.put(UserRepository.class, new UserRepositoryImpl());
+        map.put(AccountRepository.class, new AccountRepositoryImpl(dataSource));
+        map.put(BankRepository.class, new BankRepositoryImpl(dataSource));
+        map.put(TransactionRepository.class, new TransactionRepositoryImpl(dataSource));
+        map.put(UserRepository.class, new UserRepositoryImpl(dataSource));
     }
 
     @SuppressWarnings("unchecked")

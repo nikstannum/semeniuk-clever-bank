@@ -1,6 +1,11 @@
 db:
-  url: jdbc:postgresql://127.0.0.1:5432/clever-bank
+  url: jdbc:postgresql://127.0.0.1:5432/bank
   user: postgres
   password: root
   driver: org.postgresql.Driver
   pool-size: 20
+exchange-rates:
+  USD: 1
+  EUR: 1.12
+  GDP: 1.2
+  BYN: 0.3185

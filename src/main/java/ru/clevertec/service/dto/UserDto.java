@@ -1,12 +1,11 @@
-package ru.clevertec.data.entity;
+package ru.clevertec.service.dto;
 
 import lombok.Data;
 
 @Data
-public class User {
+public class UserDto {
     private Long id;
     private String firstName;
     private String lastName;
     private String email;
-    private boolean deleted;
 }
