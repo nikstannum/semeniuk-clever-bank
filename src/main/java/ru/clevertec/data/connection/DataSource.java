@@ -1,5 +1,6 @@
 package ru.clevertec.data.connection;
 
+import java.io.Closeable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -9,19 +10,21 @@ import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
-public class DataSource implements AutoCloseable {
+public class DataSource implements Closeable {
 
+
+    private final ConfigManager configManager;
     private BlockingQueue<ProxyConnection> freeConnections;
     private Queue<ProxyConnection> givenAwayConnections;
     private int poolSize;
-    public static final DataSource INSTANCE = new DataSource();
 
-    private DataSource() {
-        init();
+    public DataSource(ConfigManager configManager) {
+        this.configManager = configManager;
+        init(configManager);
     }
 
     public ProxyConnection getFreeConnections() {
-        ProxyConnection connection = null;
+        ProxyConnection connection;
         try {
             connection = freeConnections.take();
             givenAwayConnections.offer(connection);
@@ -32,10 +35,9 @@ public class DataSource implements AutoCloseable {
     }
 
     @SuppressWarnings("unchecked")
-    private void init() {
-        ConfigManager props = ConfigManager.INSTANCE;
+    private void init(ConfigManager configManager) {
         try {
-            Map<String, Object> dbPropsMap = (Map<String, Object>) props.getProperty("db");
+            Map<String, Object> dbPropsMap = (Map<String, Object>) configManager.getProperty("db");
             Class.forName((String) dbPropsMap.get("driver"));
             Connection realConnection = DriverManager.getConnection((String) dbPropsMap.get("url"),
                     (String) dbPropsMap.get("user"), (String) dbPropsMap.get("password"));
@@ -43,11 +45,10 @@ public class DataSource implements AutoCloseable {
             freeConnections = new LinkedBlockingDeque<>(poolSize);
             givenAwayConnections = new ArrayDeque<>();
             for (int i = 0; i < poolSize; i++) {
-                freeConnections.add(new ProxyConnection(realConnection));
+                ProxyConnection proxyConnection = new ProxyConnection(this, realConnection);
+                freeConnections.add(proxyConnection);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
-        } catch (ClassNotFoundException e) {
+        } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
         }
     }
@@ -68,7 +69,7 @@ public class DataSource implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         destroyPoll();
         DriverManager.getDrivers().asIterator().forEachRemaining(driver -> {
             try {

@@ -7,14 +7,12 @@ import org.yaml.snakeyaml.Yaml;
 
 public class ConfigManager {
 
-    private static final String PROP_FILE = "/application.yml";
-    public static final ConfigManager INSTANCE = new ConfigManager();
     private final Map<String, Object> map;
 
 
-    private ConfigManager() {
+    public ConfigManager(String propsFile) {
         Yaml yaml = new Yaml();
-        try (InputStream input = getClass().getResourceAsStream(PROP_FILE)) {
+        try (InputStream input = getClass().getResourceAsStream(propsFile)) {
             map = yaml.load(input);
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e.getCause());

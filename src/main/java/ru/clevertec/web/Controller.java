@@ -68,13 +68,4 @@ public class Controller extends HttpServlet {
         CommandFactory factory = CommandFactory.INSTANCE;
         return factory.getCommand(command);
     }
-
-    @Override
-    public void destroy() {
-        try {
-            DataSource.INSTANCE.close();
-        } catch (Exception e) {
-            // FIXME add logging
-        }
-    }
 }

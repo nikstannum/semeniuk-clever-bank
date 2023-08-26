@@ -1,8 +1,15 @@
 package ru.clevertec.service;
 
-import ru.clevertec.service.dto.Receipt;
-import ru.clevertec.service.dto.TransactionData;
+import ru.clevertec.service.dto.AccountStatementCreateDto;
+import ru.clevertec.service.dto.AccountStatementDto;
+import ru.clevertec.service.dto.ReceiptDto;
+import ru.clevertec.service.dto.TransactionDto;
 
 public interface TransactionService {
-    Receipt transferMoney(TransactionData data);
+    ReceiptDto transfer(TransactionDto data);
+
+    ReceiptDto topUp(TransactionDto data);
+
+    ReceiptDto withdraw(TransactionDto data);
+
 }

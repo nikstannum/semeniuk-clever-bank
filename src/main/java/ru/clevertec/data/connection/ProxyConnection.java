@@ -19,9 +19,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
 @RequiredArgsConstructor
 public class ProxyConnection implements Connection {
+    private final DataSource dataSource;
     private final Connection realConnection;
 
     void reallyClose() {
@@ -34,7 +36,7 @@ public class ProxyConnection implements Connection {
 
     @Override
     public void close() {
-        DataSource.INSTANCE.releaseConnection(this);
+        dataSource.releaseConnection(this);
     }
 
     @Override

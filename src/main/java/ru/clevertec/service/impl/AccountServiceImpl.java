@@ -1,16 +1,27 @@
 package ru.clevertec.service.impl;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Bank;
+import ru.clevertec.data.entity.Transaction;
 import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.data.repository.BankRepository;
+import ru.clevertec.data.repository.TransactionRepository;
 import ru.clevertec.data.repository.UserRepository;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.dto.AccountCreateDto;
 import ru.clevertec.service.dto.AccountDto;
+import ru.clevertec.service.dto.AccountStatementCreateDto;
+import ru.clevertec.service.dto.AccountStatementDto;
 import ru.clevertec.service.dto.AccountUpdateDto;
 import ru.clevertec.service.dto.BankDto;
 import ru.clevertec.service.dto.UserDto;
@@ -23,6 +34,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
+    private final TransactionRepository transactionRepository;
 
     @Override
     public AccountDto getById(Long id) {
@@ -65,6 +77,71 @@ public class AccountServiceImpl implements AccountService {
         account.setCurrency(dto.getCurrency());
         Account created = accountRepository.create(account);
         return toDto(created);
+    }
+
+    @Override
+    public AccountStatementDto getAccountStatement(AccountStatementCreateDto createDto) {
+        String number = createDto.getAccountNumber();
+        Account account = accountRepository.findByNumber(number).orElseThrow(() -> new NotFoundException("account wasn't found"));
+        Long id = account.getId();
+        LocalDate dateFrom = createDto.getPeriodFrom();
+        Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        LocalDate dateTo = createDto.getPeriodTo();
+        Instant instantTo = dateTo.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        List<Transaction> transactions = transactionRepository.findAllTransactionsForUser(instantFrom, instantTo, id);
+        AccountStatementDto result = new AccountStatementDto();
+        result.setBankName(account.getBank().getName());
+        result.setClientFullName(account.getUser().getFirstName() + account.getUser().getLastName());
+        result.setAccountNumber(account.getNumber());
+        result.setCurrency(account.getCurrency());
+        result.setOpenTime(account.getOpenTime());
+        result.setPeriodFrom(createDto.getPeriodFrom());
+        result.setPeriodTo(createDto.getPeriodTo());
+        result.setFormationTime(LocalDateTime.now().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        result.setBalance(account.getAmount());
+        List<List<String>> moneyMovement = collectMoneyMovement(transactions, id);
+        result.setMoneyMovement(moneyMovement);
+        return result;
+    }
+
+    private List<List<String>> collectMoneyMovement(List<Transaction> transactions, Long accountId) {
+        return transactions.stream()
+                .map(transaction -> {
+                    List<String> list = new ArrayList<>();
+                    addFormattedTime(transaction, list);
+                    Long idFrom = transaction.getAccountFrom().getId();
+                    BigDecimal moneyFrom = transaction.getAccountFromAmount();
+                    BigDecimal moneyTo = transaction.getAccountToAmount();
+                    String transactionType;
+                    BigDecimal amount;
+                    if (moneyFrom != null && moneyTo != null) {
+                        if (accountId.equals(idFrom)) {
+                            amount = transaction.getAccountFromAmount().negate();
+                            transactionType = "transfer to " + transaction.getAccountTo().getUser().getLastName();
+                        } else {
+                            amount = transaction.getAccountToAmount();
+                            transactionType = "replenishment from " + transaction.getAccountFrom().getUser().getLastName();
+                        }
+                    } else if (moneyFrom == null && moneyTo != null) {
+                        amount = transaction.getAccountToAmount();
+                        transactionType = "replenishment";
+                    } else if (moneyFrom != null) {
+                        amount = transaction.getAccountFromAmount().negate();
+                        transactionType = "cash withdrawal";
+                    } else {
+                        throw new RuntimeException("Unknown transaction");
+                    }
+                    list.add(transactionType);
+                    list.add(amount.toString());
+                    return list;
+                }).toList();
+    }
+
+    private void addFormattedTime(Transaction transaction, List<String> list) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        LocalDate time = transaction.getTransactionTime().atZone(ZoneId.systemDefault()).toLocalDate();
+        String formattedDate = time.format(formatter);
+        list.add(formattedDate);
     }
 
     private Account toEntity(AccountDto dto) {

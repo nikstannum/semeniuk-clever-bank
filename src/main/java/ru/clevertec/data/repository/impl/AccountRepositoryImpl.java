@@ -1,19 +1,21 @@
 package ru.clevertec.data.repository.impl;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Bank;
 import ru.clevertec.data.entity.Currency;
-import ru.clevertec.data.entity.Transaction;
 import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.service.exception.NotFoundException;
@@ -48,6 +50,22 @@ public class AccountRepositoryImpl implements AccountRepository {
             ORDER BY a.id
             LIMIT ?
             OFFSET ?
+            """;
+
+    private static final String FIND_ALL_AMOUNT_NON_ZERO = """
+            SELECT a.id, a."number", a.amount, a.open_time,
+            u.id AS user_id, u.first_name, u.last_name, u.email,
+            b.id AS bank_id, b."name", b.bank_identifier,
+            c."name" AS currency
+            FROM accounts a
+            JOIN users u  ON u.id = a.user_id
+            JOIN banks b ON a.bank_id = b.id
+            JOIN currencies c ON a.currency_id = c.id
+            WHERE a.deleted = false AND a.amount > 0
+            ORDER BY a.id
+            LIMIT ?
+            OFFSET ?
+                        
             """;
 
     private static final String DELETE_BY_ID = """
@@ -90,6 +108,58 @@ public class AccountRepositoryImpl implements AccountRepository {
             WHERE a."number" = ? AND a.deleted = false
             """;
 
+    private static final String UPDATE_AMOUNT_BY_NUMBER = """
+            UPDATE accounts
+            SET amount = ?
+            WHERE "number" = ?
+            """;
+
+    private static final String INCREASE_AMOUNT_BY_ID = """
+            UPDATE accounts
+            SET amount = ?
+            WHERE id = ?
+            """;
+
+    private static final String COUNT_AMOUNT_MORE_ZERO = """
+            SELECT
+            """;
+
+
+    @Override
+    public void increaseAmountById(Map<Long, BigDecimal> map, Connection connection) {
+        try {
+            PreparedStatement statement = connection.prepareStatement(INCREASE_AMOUNT_BY_ID);
+            for (Map.Entry<Long, BigDecimal> entry : map.entrySet()) {
+                statement.setBigDecimal(1, entry.getValue());
+                statement.setLong(2, entry.getKey());
+                statement.addBatch();
+            }
+            int[] updCounts = statement.executeBatch();
+            if (map.size() != updCounts.length) {
+                throw new RuntimeException("Interest error. Not all accounts have been updated.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Long countAccountWithAmountMoreZero() {
+        return null;
+    }
+
+    @Override
+    public void updateAmountByNumber(Account account, Connection connection) {
+        try {
+            PreparedStatement statement = connection.prepareStatement(UPDATE_AMOUNT_BY_NUMBER);
+            statement.setBigDecimal(1, account.getAmount());
+            statement.setString(2, account.getNumber());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public Optional<Account> findByNumber(String number) {
         try (Connection connection = dataSource.getFreeConnections();
@@ -120,6 +190,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             }
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
         return null;
     }
@@ -135,6 +206,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             }
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }
@@ -174,8 +246,32 @@ public class AccountRepositoryImpl implements AccountRepository {
             return list;
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return list;
+    }
+
+    @Override
+    public Map<Long, BigDecimal> findAllAmountMoreZero(int limit, long offset) {
+        Map<Long, BigDecimal> map = new HashMap<>();
+        try (Connection connection = dataSource.getFreeConnections();
+             PreparedStatement statement = connection.prepareStatement(FIND_ALL_AMOUNT_NON_ZERO)) {
+            statement.setInt(1, limit);
+            statement.setLong(2, offset);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                processMap(resultSet, map);
+            }
+            return map;
+        } catch (SQLException e) {
+            // FIXME add logging
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void processMap(ResultSet resultSet, Map<Long, BigDecimal> map) throws SQLException {
+        Long id = resultSet.getLong("id");
+        BigDecimal amount = resultSet.getBigDecimal("amount");
+        map.put(id, amount);
     }
 
     @Override

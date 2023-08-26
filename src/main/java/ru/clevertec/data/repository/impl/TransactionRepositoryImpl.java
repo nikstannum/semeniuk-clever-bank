@@ -5,37 +5,22 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
+import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Transaction;
+import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.TransactionRepository;
-import ru.clevertec.service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 public class TransactionRepositoryImpl implements TransactionRepository {
     private final DataSource dataSource;
 
-    private static final String CHANGE_AMOUNT_SIZE = """
-            UPDATE accounts
-            SET amount = ?
-            WHERE id = ?
-            """;
-
-    private static final String CREATE_TRANSACTION = """
-            INSERT INTO transactions (account_id, destination_account_id, account_amount, destination_account_amount)
-            VALUES
-            (?, ?, ?, ?)
-            """;
-
-    private static final String FIND_BY_ID = """
-            SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time"
-            FROM transactions t
-            WHERE t.id = ? AND deleted = false;
-            """;
 
     private static final String FIND_ALL = """
             SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time"
@@ -58,47 +43,58 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             WHERE id = ?
             """;
 
+    private static final String CREATE_TRANSACTION = """
+            INSERT INTO transactions (account_id, destination_account_id, account_amount, destination_account_amount)
+            VALUES
+            (?, ?, ?, ?)
+            """;
+
     private static final String FIND_ALL_TRANSACTION_FOR_USER = """
-            SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time"
+            SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time",
+            u1.last_name AS user_from, u2.last_name AS user_to
             FROM transactions t
+            LEFT JOIN accounts a1 ON t.account_id = a1.id
+            LEFT JOIN users u1 ON a1.user_id = u1.id
+            LEFT JOIN accounts a2 ON t.destination_account_id = a2.id
+            LEFT JOIN users u2 ON a2.user_id = u2.id
             WHERE t.deleted = false
             AND t."time" >= ?
             AND t."time" <= ?
-            AND t.account_id = ?
-            AND t.destination_account_id = ?
+            AND t.account_id = ? OR t.destination_account_id = ?
             ORDER BY t."time"
             """;
 
     @Override
-    public Transaction create(Transaction transaction) {
-        Connection connection = dataSource.getFreeConnections();
+    public void createTransaction(Transaction transaction, Connection connection) {
         try {
-            connection.setAutoCommit(false);
-            PreparedStatement initiatorStatement = connection.prepareStatement(CHANGE_AMOUNT_SIZE);
-            initiatorStatement.setBigDecimal(1, transaction.getAccountAmount());
-            initiatorStatement.setLong(2, transaction.getAccountId());
-            initiatorStatement.executeUpdate();
-            PreparedStatement destinationStatement = connection.prepareStatement(CHANGE_AMOUNT_SIZE);
-            destinationStatement.setBigDecimal(1, transaction.getDestinationAccountAmount());
-            destinationStatement.setLong(2, transaction.getDestinationAccountId());
-            destinationStatement.executeUpdate();
-            PreparedStatement transactionStatement = connection.prepareStatement(CREATE_TRANSACTION, Statement.RETURN_GENERATED_KEYS);
-            transactionStatement.setLong(1, transaction.getAccountId());
-            transactionStatement.setLong(2, transaction.getDestinationAccountId());
-            transactionStatement.setBigDecimal(3, transaction.getAccountAmount());
-            transactionStatement.setBigDecimal(4, transaction.getDestinationAccountAmount());
-            transactionStatement.executeUpdate();
-            ResultSet keys = transactionStatement.getGeneratedKeys();
-            Long id = keys.getLong("id");
-            connection.commit();
-            return findById(id).orElseThrow(() -> new NotFoundException("couldn't find transaction after its creation"));
+            PreparedStatement statement = connection.prepareStatement(CREATE_TRANSACTION, Statement.RETURN_GENERATED_KEYS);
+            Account accountFrom = transaction.getAccountFrom();
+            if (accountFrom == null) {
+                statement.setObject(1, null);
+                statement.setBigDecimal(3, null);
+            } else {
+                statement.setLong(1, accountFrom.getId());
+                statement.setBigDecimal(3, transaction.getAccountFromAmount());
+            }
+            Account accountTo = transaction.getAccountTo();
+            if (accountTo == null) {
+                statement.setObject(2, null);
+                statement.setBigDecimal(4, null);
+            } else {
+                statement.setLong(2, accountTo.getId());
+                statement.setBigDecimal(4, transaction.getAccountToAmount());
+            }
+            statement.executeUpdate();
+            ResultSet keys = statement.getGeneratedKeys();
+            while (keys.next()) {
+                Long id = keys.getLong("id");
+                transaction.setId(id);
+                Instant time = keys.getTimestamp("time").toInstant();
+                transaction.setTransactionTime(time);
+            }
         } catch (SQLException e) {
-            // FIXME add logging
-            rollback(connection);
-        } finally {
-            restore(connection);
+            throw new RuntimeException(e);
         }
-        throw new RuntimeException("Couldn't make transaction. Try again");
     }
 
     @Override
@@ -106,112 +102,73 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         List<Transaction> list = new ArrayList<>();
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(FIND_ALL_TRANSACTION_FOR_USER)) {
-            statement.setObject(1, startDate);
-            statement.setObject(2, endDate);
+            statement.setTimestamp(1, Timestamp.from(startDate));
+            statement.setObject(2, Timestamp.from(endDate));
             statement.setLong(3, id);
             statement.setLong(4, id);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                list.add(process(resultSet));
+                list.add(processTransactionsForUser(resultSet));
             }
             return list;
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return list;
     }
 
-    @Override
-    public Transaction update(Transaction transaction) {
-        Connection connection = dataSource.getFreeConnections();
-        try {
-            connection.setAutoCommit(false);
-            PreparedStatement initiatorStatement = connection.prepareStatement(CHANGE_AMOUNT_SIZE);
-            initiatorStatement.setBigDecimal(1, transaction.getAccountAmount());
-            initiatorStatement.setLong(2, transaction.getAccountId());
-            initiatorStatement.executeUpdate();
-            PreparedStatement destinationStatement = connection.prepareStatement(CHANGE_AMOUNT_SIZE);
-            destinationStatement.setBigDecimal(1, transaction.getDestinationAccountAmount());
-            destinationStatement.setLong(2, transaction.getDestinationAccountId());
-            destinationStatement.executeUpdate();
-            PreparedStatement transactionStatement = connection.prepareStatement(UPDATE_TRANSACTION);
-            transactionStatement.setLong(1, transaction.getAccountId());
-            transactionStatement.setLong(2, transaction.getDestinationAccountId());
-            transactionStatement.setBigDecimal(3, transaction.getAccountAmount());
-            transactionStatement.setBigDecimal(4, transaction.getDestinationAccountAmount());
-            transactionStatement.setLong(5, transaction.getId());
-            int rowUpd = transactionStatement.executeUpdate();
-            connection.commit();
-            if (rowUpd == 1) {
-                return findById(transaction.getId()).orElseThrow(() -> new NotFoundException("couldn't find transaction after its creation"));
-            }
-            // FIXME add logging
-            throw new SQLException(rowUpd + " row(s) was(were) updated");
-        } catch (SQLException e) {
-            // FIXME add logging
-            rollback(connection);
-        } finally {
-            restore(connection);
-        }
-        throw new RuntimeException("Couldn't make transaction. Try again");
+    private Transaction processTransactionsForUser(ResultSet rs) throws SQLException {
+        Transaction transaction = new Transaction();
+        transaction.setId(rs.getLong("id"));
+        transaction.setAccountFromAmount(rs.getBigDecimal("account_amount"));
+        transaction.setAccountToAmount(rs.getBigDecimal("destination_account_amount"));
+        transaction.setTransactionTime(rs.getTimestamp("time").toInstant());
+        User userFrom = new User();
+        userFrom.setLastName(rs.getString("user_from"));
+        Account accountFrom = new Account();
+        accountFrom.setId(rs.getLong("account_id"));
+        accountFrom.setUser(userFrom);
+        transaction.setAccountFrom(accountFrom);
+        User userTo = new User();
+        userTo.setLastName(rs.getString("user_to"));
+        Account accountTo = new Account();
+        accountTo.setId(rs.getLong("destination_account_id"));
+        accountTo.setUser(userTo);
+        transaction.setAccountTo(accountTo);
+        return transaction;
     }
 
-    @Override
-    public boolean deleteById(Long id) {
-        try (Connection connection = dataSource.getFreeConnections();
-             PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
-            statement.setLong(1, id);
-            int rowsDelete = statement.executeUpdate();
-            return rowsDelete == 1;
-        } catch (SQLException e) {
-            // FIXME add logging
-        }
-        return false;
-    }
-
-    @Override
-    public List<Transaction> findAll(int limit, long offset) {
-        List<Transaction> list = new ArrayList<>();
-        try (Connection connection = dataSource.getFreeConnections();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL)) {
-            statement.setInt(1, limit);
-            statement.setLong(2, offset);
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                list.add(process(resultSet));
-            }
-            return list;
-        } catch (SQLException e) {
-            // FIXME add logging
-        }
-        return list;
-    }
 
     @Override
     public Optional<Transaction> findById(Long id) {
-        try (Connection connection = dataSource.getFreeConnections();
-             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
-            statement.setLong(1, id);
-            ResultSet resultSet = statement.executeQuery();
-            if (resultSet.next()) {
-                return Optional.of(process(resultSet));
-            }
-        } catch (SQLException e) {
-            // FIXME add logging
-        }
         return Optional.empty();
     }
 
-    private Transaction process(ResultSet rs) throws SQLException {
-        Transaction transaction = new Transaction();
-        transaction.setId(rs.getLong("id"));
-        transaction.setAccountId(rs.getLong("account_id"));
-        transaction.setDestinationAccountId(rs.getLong("destination_account_id"));
-        transaction.setAccountAmount(rs.getBigDecimal("account_amount"));
-        transaction.setDestinationAccountAmount(rs.getBigDecimal("destination_account_amount"));
-        transaction.setTransactionTime(rs.getTime("time").toInstant());
-        return transaction;
-    }
+    //    @Override
+//    public Optional<Transaction> findById(Long id) {
+//        try (Connection connection = dataSource.getFreeConnections();
+//             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
+//            statement.setLong(1, id);
+//            ResultSet resultSet = statement.executeQuery();
+//            if (resultSet.next()) {
+//                return Optional.of(process(resultSet));
+//            }
+//        } catch (SQLException e) {
+//            // FIXME add logging
+//        }
+//        return Optional.empty();
+//    }
+//
+//    private Transaction process(ResultSet rs) throws SQLException {
+//        Transaction transaction = new Transaction();
+//        transaction.setId(rs.getLong("id"));
+//        transaction.setAccountFromId(rs.getLong("account_id"));
+//        transaction.setAccountToId(rs.getLong("destination_account_id"));
+//        transaction.setAccountFromAmount(rs.getBigDecimal("account_amount"));
+//        transaction.setAccountToAmount(rs.getBigDecimal("destination_account_amount"));
+//        transaction.setTransactionTime(rs.getTimestamp("time").toInstant());
+//        return transaction;
+//    }
 
     private void restore(Connection connection) {
         try {

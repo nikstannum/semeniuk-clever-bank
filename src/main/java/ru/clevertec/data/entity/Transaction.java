@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 public class Transaction {
     private Long id;
-    private Long accountId;
-    private Long destinationAccountId;
-    private BigDecimal accountAmount;
-    private BigDecimal destinationAccountAmount;
+    private Account accountFrom;
+    private Account accountTo;
+    private BigDecimal accountFromAmount;
+    private BigDecimal accountToAmount;
     private Instant transactionTime;
 }
