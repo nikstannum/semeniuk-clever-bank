@@ -1,5 +1,6 @@
 package ru.clevertec.data.repository.impl;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,7 +9,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
@@ -64,6 +67,44 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             ORDER BY t."time"
             """;
 
+    private static final String FIND_INCOME_EXPENSE = """
+            SELECT
+                (SELECT COALESCE(SUM(account_amount), 0)
+                FROM transactions t
+                WHERE t.account_id = ?
+                AND t.deleted = FALSE
+                AND t."time" >= ?
+            	AND t."time" <= ?) AS income,
+                (SELECT COALESCE(SUM(destination_account_amount), 0)
+                FROM transactions t
+                WHERE t.destination_account_id = ?
+                AND t.deleted = FALSE
+                AND t."time" >= ?
+            	AND t."time" <= ?) AS expense
+            """;
+
+    @Override
+    public Map<String, BigDecimal> findIncomeAndExpenseForUser(Instant startDate, Instant endDate, Long id) {
+        Map<String, BigDecimal> map = new HashMap<>();
+        try (Connection connection = dataSource.getFreeConnections();
+             PreparedStatement statement = connection.prepareStatement(FIND_INCOME_EXPENSE)) {
+            statement.setLong(1, id);
+            statement.setTimestamp(2, Timestamp.from(startDate));
+            statement.setTimestamp(3, Timestamp.from(endDate));
+            statement.setLong(4, id);
+            statement.setTimestamp(5, Timestamp.from(startDate));
+            statement.setTimestamp(6, Timestamp.from(endDate));
+            ResultSet resultSet = statement.executeQuery();
+            resultSet.next();
+            map.put("income", resultSet.getBigDecimal("income"));
+            map.put("expense", resultSet.getBigDecimal("expense"));
+            return map;
+        } catch (SQLException e) {
+            // FIXME add logging
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public void createTransaction(Transaction transaction, Connection connection) {
         try {
@@ -103,7 +144,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(FIND_ALL_TRANSACTION_FOR_USER)) {
             statement.setTimestamp(1, Timestamp.from(startDate));
-            statement.setObject(2, Timestamp.from(endDate));
+            statement.setTimestamp(2, Timestamp.from(endDate));
             statement.setLong(3, id);
             statement.setLong(4, id);
             ResultSet resultSet = statement.executeQuery();
@@ -169,21 +210,4 @@ public class TransactionRepositoryImpl implements TransactionRepository {
 //        transaction.setTransactionTime(rs.getTimestamp("time").toInstant());
 //        return transaction;
 //    }
-
-    private void restore(Connection connection) {
-        try {
-            connection.setAutoCommit(true);
-            connection.close();
-        } catch (SQLException e) {
-            // FIXME add logging
-        }
-    }
-
-    private void rollback(Connection connection) {
-        try {
-            connection.rollback();
-        } catch (SQLException e) {
-            // FIXME add logging
-        }
-    }
 }

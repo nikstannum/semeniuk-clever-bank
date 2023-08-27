@@ -8,6 +8,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Bank;
@@ -20,10 +21,12 @@ import ru.clevertec.data.repository.UserRepository;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.dto.AccountCreateDto;
 import ru.clevertec.service.dto.AccountDto;
-import ru.clevertec.service.dto.AccountStatementCreateDto;
-import ru.clevertec.service.dto.AccountStatementDto;
 import ru.clevertec.service.dto.AccountUpdateDto;
 import ru.clevertec.service.dto.BankDto;
+import ru.clevertec.service.dto.CommonInformationDto;
+import ru.clevertec.service.dto.ExtractDto;
+import ru.clevertec.service.dto.ExtractStatementCreateDto;
+import ru.clevertec.service.dto.StatementDto;
 import ru.clevertec.service.dto.UserDto;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.web.util.PagingUtil.Paging;
@@ -80,7 +83,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public AccountStatementDto getAccountStatement(AccountStatementCreateDto createDto) {
+    public ExtractDto getExtract(ExtractStatementCreateDto createDto) {
         String number = createDto.getAccountNumber();
         Account account = accountRepository.findByNumber(number).orElseThrow(() -> new NotFoundException("account wasn't found"));
         Long id = account.getId();
@@ -89,19 +92,43 @@ public class AccountServiceImpl implements AccountService {
         LocalDate dateTo = createDto.getPeriodTo();
         Instant instantTo = dateTo.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
         List<Transaction> transactions = transactionRepository.findAllTransactionsForUser(instantFrom, instantTo, id);
-        AccountStatementDto result = new AccountStatementDto();
-        result.setBankName(account.getBank().getName());
-        result.setClientFullName(account.getUser().getFirstName() + account.getUser().getLastName());
-        result.setAccountNumber(account.getNumber());
-        result.setCurrency(account.getCurrency());
-        result.setOpenTime(account.getOpenTime());
-        result.setPeriodFrom(createDto.getPeriodFrom());
-        result.setPeriodTo(createDto.getPeriodTo());
-        result.setFormationTime(LocalDateTime.now().atZone(ZoneId.systemDefault()).toLocalDateTime());
-        result.setBalance(account.getAmount());
+        CommonInformationDto commonInformation = getCommonInformation(createDto, account);
+        ExtractDto result = new ExtractDto();
+        result.setCommonInformationDto(commonInformation);
         List<List<String>> moneyMovement = collectMoneyMovement(transactions, id);
         result.setMoneyMovement(moneyMovement);
         return result;
+    }
+
+    @Override
+    public StatementDto getMoneyStatement(ExtractStatementCreateDto createDto) {
+        String number = createDto.getAccountNumber();
+        Account account = accountRepository.findByNumber(number).orElseThrow(() -> new NotFoundException("account wasn't found"));
+        Long id = account.getId();
+        LocalDate dateFrom = createDto.getPeriodFrom();
+        Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        LocalDate dateTo = createDto.getPeriodTo();
+        Instant instantTo = dateTo.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        StatementDto result = new StatementDto();
+        CommonInformationDto commonInformation = getCommonInformation(createDto, account);
+        result.setCommonInformationDto(commonInformation);
+        Map<String, BigDecimal> incomeExpenseMap = transactionRepository.findIncomeAndExpenseForUser(instantFrom, instantTo, id);
+        result.setIncomeExpense(incomeExpenseMap);
+        return result;
+    }
+
+    private CommonInformationDto getCommonInformation(ExtractStatementCreateDto createDto, Account account) {
+        CommonInformationDto dto = new CommonInformationDto();
+        dto.setBankName(account.getBank().getName());
+        dto.setClientFullName(account.getUser().getFirstName() + " " + account.getUser().getLastName());
+        dto.setAccountNumber(account.getNumber());
+        dto.setCurrency(account.getCurrency());
+        dto.setOpenTime(account.getOpenTime());
+        dto.setPeriodFrom(createDto.getPeriodFrom());
+        dto.setPeriodTo(createDto.getPeriodTo());
+        dto.setFormationTime(LocalDateTime.now().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        dto.setBalance(account.getAmount());
+        return dto;
     }
 
     private List<List<String>> collectMoneyMovement(List<Transaction> transactions, Long accountId) {
