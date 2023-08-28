@@ -1,15 +1,12 @@
 package ru.clevertec.data.repository.impl;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
@@ -48,20 +45,11 @@ public class AccountRepositoryImpl implements AccountRepository {
             LIMIT ?
             OFFSET ?
             """;
-    private static final String FIND_ALL_AMOUNT_NON_ZERO = """
-            SELECT a.id, a."number", a.amount, a.open_time,
-            u.id AS user_id, u.first_name, u.last_name, u.email,
-            b.id AS bank_id, b."name", b.bank_identifier,
-            c."name" AS currency
-            FROM accounts a
-            JOIN users u  ON u.id = a.user_id
-            JOIN banks b ON a.bank_id = b.id
-            JOIN currencies c ON a.currency_id = c.id
-            WHERE a.deleted = false AND a.amount > 0
-            ORDER BY a.id
-            LIMIT ?
-            OFFSET ?
-                        
+
+    private static final String COUNT_ACCOUNT_AMOUNT_MORE_ZERO = """
+            SELECT count(a.id) AS total  FROM accounts a
+            WHERE a.amount > 0
+            AND a.deleted = false
             """;
     private static final String DELETE_BY_ID = """
             UPDATE accounts
@@ -108,23 +96,55 @@ public class AccountRepositoryImpl implements AccountRepository {
             SET amount = ?
             WHERE id = ?
             """;
-    private static final String COUNT_AMOUNT_MORE_ZERO = """
-            SELECT
+
+    private static final String FIND_ALL_AMOUNT_MORE_ZERO = """
+            SELECT a.id, a."number", a.amount, a.open_time
+            FROM accounts a
+            WHERE a.deleted = false AND a.amount > 0
+            ORDER BY a.id
+            LIMIT ?
+            OFFSET ?
             """;
+
     private final DataSource dataSource;
 
     @Override
-    public void increaseAmountById(Map<Long, BigDecimal> map, Connection connection) {
+    public List<Account> findAllAmountMoreZero(int limit, long offset, Connection connection) {
+        List<Account> list = new ArrayList<>();
+        try {
+            PreparedStatement statement = connection.prepareStatement(FIND_ALL_AMOUNT_MORE_ZERO);
+            statement.setInt(1, limit);
+            statement.setLong(2, offset);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                list.add(processLazy(resultSet));
+            }
+            return list;
+        } catch (
+                SQLException e) {
+            // FIXME add logging
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Account processLazy(ResultSet resultSet) throws SQLException {
+        Account account = new Account();
+        account.setId(resultSet.getLong("id"));
+        account.setNumber(resultSet.getString("number"));
+        account.setAmount(resultSet.getBigDecimal("amount"));
+        account.setOpenTime(resultSet.getDate("open_time").toLocalDate());
+        return account;
+    }
+
+    @Override
+    public void increaseAmountById(Account account, Connection connection) {
         try {
             PreparedStatement statement = connection.prepareStatement(INCREASE_AMOUNT_BY_ID);
-            for (Map.Entry<Long, BigDecimal> entry : map.entrySet()) {
-                statement.setBigDecimal(1, entry.getValue());
-                statement.setLong(2, entry.getKey());
-                statement.addBatch();
-            }
-            int[] updCounts = statement.executeBatch();
-            if (map.size() != updCounts.length) {
-                throw new RuntimeException("Interest error. Not all accounts have been updated.");
+            statement.setBigDecimal(1, account.getAmount());
+            statement.setLong(2, account.getId());
+            int rowUpd = statement.executeUpdate();
+            if (rowUpd != 1) {
+                throw new RuntimeException("Error calculating interest for account ID = " + account.getId() + " Updated " + rowUpd + " rows");
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -132,8 +152,17 @@ public class AccountRepositoryImpl implements AccountRepository {
     }
 
     @Override
-    public Long countAccountWithAmountMoreZero() {
-        return null;
+    public Long countAccountWithAmountMoreZero(Connection connection) {
+        try {
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery(COUNT_ACCOUNT_AMOUNT_MORE_ZERO);
+            if (rs.next()) {
+                return rs.getLong("total");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        throw new RuntimeException("count of accounts not definition");
     }
 
     @Override
@@ -155,7 +184,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setString(1, number);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return Optional.of(process(resultSet));
+                return Optional.of(processEager(resultSet));
             }
         } catch (SQLException e) {
             // FIXME add logging
@@ -190,7 +219,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setLong(1, id);
             ResultSet resultSet = statement.executeQuery();
             if (resultSet.next()) {
-                return Optional.of(process(resultSet));
+                return Optional.of(processEager(resultSet));
             }
         } catch (SQLException e) {
             // FIXME add logging
@@ -199,7 +228,7 @@ public class AccountRepositoryImpl implements AccountRepository {
         return Optional.empty();
     }
 
-    private Account process(ResultSet resultSet) throws SQLException {
+    private Account processEager(ResultSet resultSet) throws SQLException {
         Account account = new Account();
         account.setId(resultSet.getLong("id"));
         account.setNumber(resultSet.getString("number"));
@@ -229,37 +258,13 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setLong(2, offset);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                list.add(process(resultSet));
+                list.add(processEager(resultSet));
             }
             return list;
         } catch (SQLException e) {
             // FIXME add logging
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public Map<Long, BigDecimal> findAllAmountMoreZero(int limit, long offset) {
-        Map<Long, BigDecimal> map = new HashMap<>();
-        try (Connection connection = dataSource.getFreeConnections();
-             PreparedStatement statement = connection.prepareStatement(FIND_ALL_AMOUNT_NON_ZERO)) {
-            statement.setInt(1, limit);
-            statement.setLong(2, offset);
-            ResultSet resultSet = statement.executeQuery();
-            while (resultSet.next()) {
-                processMap(resultSet, map);
-            }
-            return map;
-        } catch (SQLException e) {
-            // FIXME add logging
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void processMap(ResultSet resultSet, Map<Long, BigDecimal> map) throws SQLException {
-        Long id = resultSet.getLong("id");
-        BigDecimal amount = resultSet.getBigDecimal("amount");
-        map.put(id, amount);
     }
 
     @Override
@@ -283,21 +288,27 @@ public class AccountRepositoryImpl implements AccountRepository {
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
             statement.setLong(1, id);
             int rowsDelete = statement.executeUpdate();
+            if (rowsDelete != 1) {
+                throw new RuntimeException("Error when deleting account. The change affected " + rowsDelete + " rows");
+            }
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
     }
 
     @Override
-    public boolean deleteByNumber(String number) {
+    public void deleteByNumber(String number) {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_NUMBER)) {
             statement.setString(1, number);
             int rowsDelete = statement.executeUpdate();
-            return rowsDelete == 1;
+            if (rowsDelete != 1) {
+                throw new RuntimeException("Error when deleting account. The change affected " + rowsDelete + " rows");
+            }
         } catch (SQLException e) {
             // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return false;
     }
 }

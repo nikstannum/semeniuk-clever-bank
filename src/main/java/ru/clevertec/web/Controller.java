@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import ru.clevertec.web.command.Command;
-import ru.clevertec.web.factory.CommandFactory;
+import ru.clevertec.web.factory.BeanFactory;
 
 @WebServlet("/")
 public class Controller extends HttpServlet {
@@ -17,9 +17,9 @@ public class Controller extends HttpServlet {
     private static final String POST = "POST";
     private static final String PUT = "PUT";
 
-    private static Command getCommand(String command) {
-        CommandFactory factory = CommandFactory.INSTANCE;
-        return factory.getCommand(command);
+    private Command getCommand(String command) {
+        BeanFactory factory = BeanFactory.INSTANCE;
+        return (Command) factory.getBean(command);
     }
 
     @Override

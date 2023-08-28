@@ -9,3 +9,6 @@ exchange-rates:
   EUR: 1.12
   GDP: 1.2
   BYN: 0.3185
+interest:
+  percent: 1
+  periodicity: 5

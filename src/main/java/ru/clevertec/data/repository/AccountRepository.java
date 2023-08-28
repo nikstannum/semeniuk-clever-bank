@@ -2,18 +2,19 @@ package ru.clevertec.data.repository;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import ru.clevertec.data.entity.Account;
 
 public interface AccountRepository extends CrudRepository<Account, Long> {
-    boolean deleteByNumber(String number);
+    void deleteByNumber(String number);
 
-    Map<Long, BigDecimal> findAllAmountMoreZero(int limit, long offset);
+    List<Account> findAllAmountMoreZero(int limit, long offset, Connection connection);
 
-    Long countAccountWithAmountMoreZero();
+    Long countAccountWithAmountMoreZero(Connection connection);
 
-    void increaseAmountById(Map<Long, BigDecimal> map, Connection connection);
+    void increaseAmountById(Account account, Connection connection);
 
     void updateAmountByNumber(Account account, Connection connection);
 

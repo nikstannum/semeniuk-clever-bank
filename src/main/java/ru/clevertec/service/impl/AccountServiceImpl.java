@@ -1,6 +1,7 @@
 package ru.clevertec.service.impl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import ru.clevertec.data.DbTransactionManager;
 import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Bank;
 import ru.clevertec.data.entity.Transaction;
@@ -38,6 +40,36 @@ public class AccountServiceImpl implements AccountService {
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
     private final TransactionRepository transactionRepository;
+    private final DbTransactionManager dbTransactionManager;
+    private final BigDecimal percent;
+
+    @Override
+    public void accrueInterest() {
+        dbTransactionManager.execute(connection -> {
+                    Long count = accountRepository.countAccountWithAmountMoreZero(connection);
+                    if (count.equals(0L)) {
+                        return;
+                    }
+                    int limit = count < 10 ? count.intValue() : 10;
+                    long iterationsQuantity = count / 10 + 1;
+                    for (long i = 0; i < iterationsQuantity; i++) {
+                        long offset = 10 * i;
+                        List<Account> list = accountRepository.findAllAmountMoreZero(limit, offset, connection);
+                        for (Account account : list) {
+                            BigDecimal currentAmount = account.getAmount();
+                            BigDecimal accrualAmount = currentAmount.multiply(percent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                            BigDecimal newAmount = currentAmount.add(accrualAmount);
+                            account.setAmount(newAmount);
+                            accountRepository.updateAmountByNumber(account, connection);
+                            Transaction transaction = new Transaction();
+                            transaction.setAccountTo(account);
+                            transaction.setAccountToAmount(accrualAmount);
+                            transactionRepository.createTransaction(transaction, connection);
+                        }
+                    }
+                }
+        );
+    }
 
     @Override
     public AccountDto getById(Long id) {

@@ -24,24 +24,24 @@ import ru.clevertec.data.repository.impl.UserRepositoryImpl;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.TransactionService;
 import ru.clevertec.service.impl.AccountServiceImpl;
+import ru.clevertec.service.impl.AccrualServiceImpl;
 import ru.clevertec.service.impl.TransactionServiceImpl;
 import ru.clevertec.service.util.MoneyUtil;
-import ru.clevertec.web.command.Command;
 import ru.clevertec.web.command.impl.account.DeleteAccountCommand;
 import ru.clevertec.web.command.impl.account.GetAccountCommand;
 import ru.clevertec.web.command.impl.account.PostAccountCommand;
 import ru.clevertec.web.command.impl.account.PutAccountCommand;
 import ru.clevertec.web.command.impl.transaction.PostTransactionCommand;
 
-public class CommandFactory implements Closeable {
+public class BeanFactory implements Closeable {
 
-    public final static CommandFactory INSTANCE = new CommandFactory();
-    private final Map<String, Command> commands;
+    public final static BeanFactory INSTANCE = new BeanFactory();
+    private final Map<String, Object> beans;
     private final List<Closeable> closeables;
 
-    private CommandFactory() {
+    private BeanFactory() {
         closeables = new ArrayList<>();
-        commands = new HashMap<>();
+        beans = new HashMap<>();
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModules(new JavaTimeModule());
 
@@ -55,26 +55,37 @@ public class CommandFactory implements Closeable {
         TransactionRepository transactionRepository = new TransactionRepositoryImpl(dataSource);
         DbTransactionManager dbTransactionManager = new DbTransactionManagerImpl(dataSource);
 
+        // utils
         @SuppressWarnings("unchecked")
         Map<String, BigDecimal> rates = (Map<String, BigDecimal>) configManager.getProperty("exchange-rates");
         MoneyUtil moneyUtil = new MoneyUtil(rates);
 
         // service
-        AccountService accountService = new AccountServiceImpl(accountRepository, userRepository, bankRepository, transactionRepository);
+        @SuppressWarnings("unchecked")
+        Map<String, BigDecimal> interest = (Map<String, BigDecimal>) configManager.getProperty("interest");
+        BigDecimal percent = new BigDecimal(String.valueOf(interest.get("percent")));
+        AccountService accountService = new AccountServiceImpl(accountRepository, userRepository, bankRepository, transactionRepository,
+                dbTransactionManager, percent);
         TransactionService transactionService = new TransactionServiceImpl(transactionRepository, accountRepository, dbTransactionManager, moneyUtil);
+        BigDecimal periodStr = new BigDecimal(String.valueOf(interest.get("periodicity")));
+        Long periodicity = periodStr.longValue();
+        AccrualServiceImpl accrualService = new AccrualServiceImpl(accountService, periodicity);
+        closeables.add(accrualService);
 
-        commands.put("accountsGET", new GetAccountCommand(accountService, objectMapper));
-        commands.put("accountsDELETE", new DeleteAccountCommand(accountService));
-        commands.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
-        commands.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
-        commands.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper));
+
+        beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper));
+        beans.put("accountsDELETE", new DeleteAccountCommand(accountService));
+        beans.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
+        beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
+        beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper));
+        beans.put("accrualService", accrualService);
 
     }
 
-    public Command getCommand(String command) {
-        Command instance = commands.get(command);
+    public Object getBean(String command) {
+        Object instance = beans.get(command);
         if (instance == null) {
-            instance = commands.get("error");
+            instance = beans.get("error");
         }
         return instance;
     }

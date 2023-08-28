@@ -25,4 +25,6 @@ public interface AccountService {
 
     StatementDto getMoneyStatement(ExtractStatementCreateDto createDto);
 
+    void accrueInterest();
+
 }
