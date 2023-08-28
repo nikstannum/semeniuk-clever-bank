@@ -2,6 +2,7 @@ package ru.clevertec.web.command.impl.error;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ public class ErrorCommand implements Command {
     private static final int CODE_NOT_FOUND = 404;
     private static final int CODE_CONFLICT = 409;
     private static final int CODE_INTERNAL_SERVER_ERROR = 500;
+    private static final String CONTENT_TYPE_APP_JSON = "application/json";
     private static final String MSG_SERVER_ERROR = "Server error";
     private static final String MSG_CLIENT_ERROR = "Client error";
     private static final String DEFAULT_MSG = "Unknown error";
@@ -25,7 +27,8 @@ public class ErrorCommand implements Command {
 
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {
-        Exception e = (Exception) req.getAttribute("exc");
+        Exception e = (Exception) req.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+        res.setContentType(CONTENT_TYPE_APP_JSON);
         if (e instanceof NotFoundException) {
             ErrorDto errorDto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());
             res.setStatus(CODE_NOT_FOUND);

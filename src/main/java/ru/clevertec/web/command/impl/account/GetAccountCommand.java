@@ -83,7 +83,12 @@ public class GetAccountCommand implements Command {
     }
 
     private String processById(String[] parts) throws JsonProcessingException {
-        Long id = Long.parseLong(parts[1]);
+        long id;
+        try {
+            id = Long.parseLong(parts[1]);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(EXC_MSG_BAD_REQUEST);
+        }
         AccountDto dto = accountService.getById(id);
         return objectMapper.writeValueAsString(dto);
     }
