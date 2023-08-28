@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.web.command.Command;
 import ru.clevertec.web.factory.CommandFactory;
 
@@ -17,6 +16,11 @@ public class Controller extends HttpServlet {
     private static final String DELETE = "DELETE";
     private static final String POST = "POST";
     private static final String PUT = "PUT";
+
+    private static Command getCommand(String command) {
+        CommandFactory factory = CommandFactory.INSTANCE;
+        return factory.getCommand(command);
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -41,7 +45,6 @@ public class Controller extends HttpServlet {
 
     }
 
-
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String uri = req.getRequestURI().substring(1);
@@ -62,10 +65,5 @@ public class Controller extends HttpServlet {
         Command instance = getCommand(command);
         instance.execute(req);
         resp.setStatus(204);
-    }
-
-    private static Command getCommand(String command) {
-        CommandFactory factory = CommandFactory.INSTANCE;
-        return factory.getCommand(command);
     }
 }

@@ -5,6 +5,9 @@ import java.io.InputStream;
 import java.util.Map;
 import org.yaml.snakeyaml.Yaml;
 
+/**
+ * Manager for reading properties from a properties file
+ */
 public class ConfigManager {
 
     private final Map<String, Object> map;

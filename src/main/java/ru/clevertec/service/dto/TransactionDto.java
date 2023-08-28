@@ -2,9 +2,6 @@ package ru.clevertec.service.dto;
 
 import java.math.BigDecimal;
 import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import ru.clevertec.data.entity.Currency;
 
 @Data

@@ -7,7 +7,6 @@ import ru.clevertec.data.DbTransactionManager;
 import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Currency;
 import ru.clevertec.data.entity.Transaction;
-import ru.clevertec.data.entity.auxiliary.Money;
 import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.data.repository.TransactionRepository;
 import ru.clevertec.service.TransactionService;
@@ -16,6 +15,7 @@ import ru.clevertec.service.dto.TransactionDto;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.service.exception.TransactionException;
 import ru.clevertec.service.util.MoneyUtil;
+import ru.clevertec.service.util.auxiliary.Money;
 
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {

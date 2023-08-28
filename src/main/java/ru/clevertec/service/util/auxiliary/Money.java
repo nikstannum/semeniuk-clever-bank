@@ -1,4 +1,4 @@
-package ru.clevertec.data.entity.auxiliary;
+package ru.clevertec.service.util.auxiliary;
 
 import java.math.BigDecimal;
 import lombok.Data;

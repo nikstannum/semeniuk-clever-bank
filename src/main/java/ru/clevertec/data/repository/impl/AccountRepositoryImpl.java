@@ -23,8 +23,6 @@ import ru.clevertec.service.exception.NotFoundException;
 @RequiredArgsConstructor
 public class AccountRepositoryImpl implements AccountRepository {
 
-    private final DataSource dataSource;
-
     private static final String FIND_BY_ID = """
             SELECT a.id, a."number", a.amount, a.open_time,
             u.id AS user_id, u.first_name, u.last_name, u.email,
@@ -36,7 +34,6 @@ public class AccountRepositoryImpl implements AccountRepository {
             JOIN currencies c ON a.currency_id = c.id
             WHERE a.id = ? AND a.deleted = false
             """;
-
     private static final String FIND_ALL = """
             SELECT a.id, a."number", a.amount, a.open_time,
             u.id AS user_id, u.first_name, u.last_name, u.email,
@@ -51,7 +48,6 @@ public class AccountRepositoryImpl implements AccountRepository {
             LIMIT ?
             OFFSET ?
             """;
-
     private static final String FIND_ALL_AMOUNT_NON_ZERO = """
             SELECT a.id, a."number", a.amount, a.open_time,
             u.id AS user_id, u.first_name, u.last_name, u.email,
@@ -67,19 +63,16 @@ public class AccountRepositoryImpl implements AccountRepository {
             OFFSET ?
                         
             """;
-
     private static final String DELETE_BY_ID = """
             UPDATE accounts
             SET deleted = true
             WHERE id = ?
             """;
-
     private static final String DELETE_BY_NUMBER = """
             UPDATE accounts
             SET deleted = true
             WHERE "number" = ?
             """;
-
     private static final String CREATE_ACCOUNT = """
             INSERT INTO accounts(user_id, bank_id, amount, currency_id)
             VALUES
@@ -88,14 +81,12 @@ public class AccountRepositoryImpl implements AccountRepository {
             0,
             (SELECT id FROM currencies WHERE name = ?))
             """;
-
     private static final String UPDATE_ACCOUNT_BY_ID = """
             UPDATE accounts
             SET bank_id = (SELECT b.id FROM banks b WHERE b.bank_identifier = ? AND b.deleted = false),
             amount = ?
             WHERE id = ?
             """;
-
     private static final String FIND_BY_NUMBER = """
             SELECT a.id, a."number", a.amount, a.open_time,
             u.id AS user_id, u.first_name, u.last_name, u.email,
@@ -107,23 +98,20 @@ public class AccountRepositoryImpl implements AccountRepository {
             JOIN currencies c ON a.currency_id = c.id
             WHERE a."number" = ? AND a.deleted = false
             """;
-
     private static final String UPDATE_AMOUNT_BY_NUMBER = """
             UPDATE accounts
             SET amount = ?
             WHERE "number" = ?
             """;
-
     private static final String INCREASE_AMOUNT_BY_ID = """
             UPDATE accounts
             SET amount = ?
             WHERE id = ?
             """;
-
     private static final String COUNT_AMOUNT_MORE_ZERO = """
             SELECT
             """;
-
+    private final DataSource dataSource;
 
     @Override
     public void increaseAmountById(Map<Long, BigDecimal> map, Connection connection) {
@@ -290,16 +278,14 @@ public class AccountRepositoryImpl implements AccountRepository {
     }
 
     @Override
-    public boolean deleteById(Long id) {
+    public void deleteById(Long id) {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
             statement.setLong(1, id);
             int rowsDelete = statement.executeUpdate();
-            return rowsDelete == 1;
         } catch (SQLException e) {
             // FIXME add logging
         }
-        return false;
     }
 
     @Override

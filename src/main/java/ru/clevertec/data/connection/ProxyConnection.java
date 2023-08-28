@@ -19,13 +19,19 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 
+/**
+ * Database connection. The class is implemented based on the proxy pattern. The class object is contained in the connection pool
+ * and issued upon request. The pool size is defined in the properties file.
+ */
 @RequiredArgsConstructor
 public class ProxyConnection implements Connection {
     private final DataSource dataSource;
     private final Connection realConnection;
 
+    /**
+     * Releases this real {@link java.sql.Connection} object's database and JDBC resources.
+     */
     void reallyClose() {
         try {
             realConnection.close();
@@ -34,6 +40,9 @@ public class ProxyConnection implements Connection {
         }
     }
 
+    /**
+     * Returns the used connection to the pool.
+     */
     @Override
     public void close() {
         dataSource.releaseConnection(this);
@@ -70,13 +79,13 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setAutoCommit(boolean autoCommit) throws SQLException {
-        realConnection.setAutoCommit(autoCommit);
+    public boolean getAutoCommit() throws SQLException {
+        return realConnection.getAutoCommit();
     }
 
     @Override
-    public boolean getAutoCommit() throws SQLException {
-        return realConnection.getAutoCommit();
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
+        realConnection.setAutoCommit(autoCommit);
     }
 
     @Override
@@ -100,18 +109,13 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setReadOnly(boolean readOnly) throws SQLException {
-        realConnection.setReadOnly(readOnly);
-    }
-
-    @Override
     public boolean isReadOnly() throws SQLException {
         return realConnection.isReadOnly();
     }
 
     @Override
-    public void setCatalog(String catalog) throws SQLException {
-        realConnection.setCatalog(catalog);
+    public void setReadOnly(boolean readOnly) throws SQLException {
+        realConnection.setReadOnly(readOnly);
     }
 
     @Override
@@ -120,13 +124,18 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setTransactionIsolation(int level) throws SQLException {
-        realConnection.setTransactionIsolation(level);
+    public void setCatalog(String catalog) throws SQLException {
+        realConnection.setCatalog(catalog);
     }
 
     @Override
     public int getTransactionIsolation() throws SQLException {
         return realConnection.getTransactionIsolation();
+    }
+
+    @Override
+    public void setTransactionIsolation(int level) throws SQLException {
+        realConnection.setTransactionIsolation(level);
     }
 
     @Override
@@ -166,13 +175,13 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setHoldability(int holdability) throws SQLException {
-        realConnection.setHoldability(holdability);
+    public int getHoldability() throws SQLException {
+        return realConnection.getHoldability();
     }
 
     @Override
-    public int getHoldability() throws SQLException {
-        return realConnection.getHoldability();
+    public void setHoldability(int holdability) throws SQLException {
+        realConnection.setHoldability(holdability);
     }
 
     @Override
@@ -259,11 +268,6 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setClientInfo(Properties properties) throws SQLClientInfoException {
-        realConnection.setClientInfo(properties);
-    }
-
-    @Override
     public String getClientInfo(String name) throws SQLException {
         return realConnection.getClientInfo(name);
     }
@@ -271,6 +275,11 @@ public class ProxyConnection implements Connection {
     @Override
     public Properties getClientInfo() throws SQLException {
         return realConnection.getClientInfo();
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        realConnection.setClientInfo(properties);
     }
 
     @Override
@@ -284,13 +293,13 @@ public class ProxyConnection implements Connection {
     }
 
     @Override
-    public void setSchema(String schema) throws SQLException {
-        realConnection.setSchema(schema);
+    public String getSchema() throws SQLException {
+        return realConnection.getSchema();
     }
 
     @Override
-    public String getSchema() throws SQLException {
-        return realConnection.getSchema();
+    public void setSchema(String schema) throws SQLException {
+        realConnection.setSchema(schema);
     }
 
     @Override

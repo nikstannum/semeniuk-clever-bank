@@ -22,9 +22,6 @@ import ru.clevertec.data.repository.TransactionRepository;
 
 @RequiredArgsConstructor
 public class TransactionRepositoryImpl implements TransactionRepository {
-    private final DataSource dataSource;
-
-
     private static final String FIND_ALL = """
             SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time"
             FROM transactions t
@@ -33,25 +30,21 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             LIMIT ?
             OFFSET ?
             """;
-
     private static final String DELETE_BY_ID = """
             UPDATE transactions
             SET deleted = true
             WHERE id = ?
             """;
-
     private static final String UPDATE_TRANSACTION = """
             UPDATE transactions
             SET account_id = ?, destination_account_id = ?, account_amount = ?, destination_account_amount = ?
             WHERE id = ?
             """;
-
     private static final String CREATE_TRANSACTION = """
             INSERT INTO transactions (account_id, destination_account_id, account_amount, destination_account_amount)
             VALUES
             (?, ?, ?, ?)
             """;
-
     private static final String FIND_ALL_TRANSACTION_FOR_USER = """
             SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time",
             u1.last_name AS user_from, u2.last_name AS user_to
@@ -66,7 +59,6 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             AND t.account_id = ? OR t.destination_account_id = ?
             ORDER BY t."time"
             """;
-
     private static final String FIND_INCOME_EXPENSE = """
             SELECT
                 (SELECT COALESCE(SUM(account_amount), 0)
@@ -82,6 +74,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 AND t."time" >= ?
             	AND t."time" <= ?) AS expense
             """;
+    private final DataSource dataSource;
 
     @Override
     public Map<String, BigDecimal> findIncomeAndExpenseForUser(Instant startDate, Instant endDate, Long id) {

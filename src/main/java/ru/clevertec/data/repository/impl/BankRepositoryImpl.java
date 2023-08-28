@@ -10,35 +10,27 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
-import ru.clevertec.data.entity.Account;
 import ru.clevertec.data.entity.Bank;
-import ru.clevertec.data.entity.Currency;
-import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.BankRepository;
 import ru.clevertec.service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 public class BankRepositoryImpl implements BankRepository {
 
-    private final DataSource dataSource;
-
     private static final String CREATE_BANK = """
             INSERT INTO banks ("name", bank_identifier)
             VALUES (?, ?)
             """;
-
     private static final String FIND_BY_ID = """
             SELECT b.id, b."name", b.bank_identifier
             FROM banks b
             WHERE b.id = ? AND b.deleted = false;
             """;
-
     private static final String FIND_BANK_BY_IDENTIFIER = """
             SELECT b.id, b."name", b.bank_identifier
             FROM banks b
             WHERE b.bank_identifier = ? AND b.deleted = false;
             """;
-
     private static final String FIND_ALL = """
             SELECT b.id, b."name", b.bank_identifier
             FROM banks b
@@ -47,18 +39,17 @@ public class BankRepositoryImpl implements BankRepository {
             LIMIT ?
             OFFSET ?
             """;
-
-    private static  final String DELETE_BANK_BY_ID = """
+    private static final String DELETE_BANK_BY_ID = """
             UPDATE banks
             SET deleted = true
             WHERE id = ?;
             """;
-
     private static final String UPDATE_BANK = """
             UPDATE banks
             SET "name" = ?, bank_identifier = ?
             WHERE id = ?;
             """;
+    private final DataSource dataSource;
 
     @Override
     public Bank update(Bank entity) {
@@ -76,16 +67,14 @@ public class BankRepositoryImpl implements BankRepository {
     }
 
     @Override
-    public boolean deleteById(Long id) {
+    public void deleteById(Long id) {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BANK_BY_ID)) {
             statement.setLong(1, id);
             int rowsDelete = statement.executeUpdate();
-            return rowsDelete == 1;
         } catch (SQLException e) {
             // FIXME add logging
         }
-        return false;
     }
 
     @Override

@@ -5,9 +5,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import ru.clevertec.data.connection.ConfigManager;
 import ru.clevertec.data.entity.Currency;
-import ru.clevertec.data.entity.auxiliary.Money;
+import ru.clevertec.service.util.auxiliary.Money;
 
 @RequiredArgsConstructor
 public class MoneyUtil {

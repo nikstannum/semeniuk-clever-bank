@@ -17,25 +17,20 @@ import ru.clevertec.service.exception.NotFoundException;
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
 
-    private final DataSource dataSource;
-
     private static final String FIND_USER_BY_EMAIL = """
             SELECT u.id, u.first_name, u.last_name, u.email
             FROM users u
             WHERE u.email = ? AND u.deleted = false
             """;
-
     private static final String CREATE_USER = """
             INSERT INTO users (first_name, last_name, email)
             VALUES (?, ?, ?)
             """;
-
     private static final String FIND_USER_BY_ID = """
             SELECT u.id, u.first_name, u.last_name, u.email
             FROM users u
             WHERE u.id  = ? AND u.deleted = false
             """;
-
     private static final String FIND_ALL = """
             SELECT u.id, u.first_name, u.last_name, u.email
             FROM users u
@@ -44,30 +39,27 @@ public class UserRepositoryImpl implements UserRepository {
             LIMIT ?
             OFFSET ?
             """;
-
     private static final String UPDATE_USER = """
             UPDATE users
             SET first_name = ?, last_name = ?, email = ?
             WHERE id = ?
             """;
-
     private static final String DELETE_USER_BY_ID = """
             UPDATE users
             SET deleted = true
             WHERE id = ?
             """;
+    private final DataSource dataSource;
 
     @Override
-    public boolean deleteById(Long id) {
+    public void deleteById(Long id) {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_USER_BY_ID)) {
             statement.setLong(1, id);
             int rowsDelete = statement.executeUpdate();
-            return rowsDelete == 1;
         } catch (SQLException e) {
             // FIXME add logging
         }
-        return false;
     }
 
     @Override

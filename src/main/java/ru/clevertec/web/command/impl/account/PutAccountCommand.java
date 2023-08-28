@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.service.AccountService;
-import ru.clevertec.service.dto.AccountCreateDto;
 import ru.clevertec.service.dto.AccountUpdateDto;
 import ru.clevertec.service.exception.BadRequestException;
 import ru.clevertec.web.command.Command;

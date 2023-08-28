@@ -1,6 +1,6 @@
 package ru.clevertec.service.exception;
 
-public class TransactionException extends AppException{
+public class TransactionException extends AppException {
     public TransactionException() {
     }
 

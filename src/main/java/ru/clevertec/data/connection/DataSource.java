@@ -10,28 +10,18 @@ import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
+/**
+ * Connection source for database access
+ */
 public class DataSource implements Closeable {
 
 
-    private final ConfigManager configManager;
     private BlockingQueue<ProxyConnection> freeConnections;
     private Queue<ProxyConnection> givenAwayConnections;
     private int poolSize;
 
     public DataSource(ConfigManager configManager) {
-        this.configManager = configManager;
         init(configManager);
-    }
-
-    public ProxyConnection getFreeConnections() {
-        ProxyConnection connection;
-        try {
-            connection = freeConnections.take();
-            givenAwayConnections.offer(connection);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
-        }
-        return connection;
     }
 
     @SuppressWarnings("unchecked")
@@ -53,6 +43,28 @@ public class DataSource implements Closeable {
         }
     }
 
+    /**
+     * Provides a connection to access the database
+     *
+     * @return idle connection
+     */
+    public ProxyConnection getFreeConnections() {
+        ProxyConnection connection;
+        try {
+            connection = freeConnections.take();
+            givenAwayConnections.offer(connection);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
+        }
+        return connection;
+    }
+
+
+    /**
+     * returns the freed connection to the pool
+     *
+     * @param connection
+     */
     public void releaseConnection(ProxyConnection connection) {
         givenAwayConnections.remove(connection);
         freeConnections.offer(connection);
@@ -68,6 +80,9 @@ public class DataSource implements Closeable {
         }
     }
 
+    /**
+     * destroys the connection pool and deregisters the database driver
+     */
     @Override
     public void close() {
         destroyPoll();
@@ -79,5 +94,4 @@ public class DataSource implements Closeable {
             }
         });
     }
-
 }
