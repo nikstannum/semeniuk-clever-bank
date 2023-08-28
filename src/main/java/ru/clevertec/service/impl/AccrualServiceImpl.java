@@ -1,7 +1,6 @@
 package ru.clevertec.service.impl;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,7 @@ public class AccrualServiceImpl implements Runnable, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         scheduledExecutorService.shutdown();
     }
 }

@@ -19,6 +19,13 @@ import ru.clevertec.service.util.auxiliary.Money;
 
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
+    private static final String EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER = "wasn't found account with number ";
+    private static final String EXC_MSG_NOT_FOUND_RECIPIENT_NUMBER = "invalid recipient number ";
+    private static final String TRANSACTION_TRANSFER = "transfer";
+    private static final String TRANSACTION_TOP_UP = "top up";
+    private static final String TRANSACTION_WITHDRAWAL = "withdrawal";
+    private static final String UNKNOWN_TRANSACTION = "Unknown transaction";
+    private static final String EXC_MSG_NOT_ENOUGH_FUNDS_IN_THE_ACCOUNT = "Not enough funds in the account";
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final DbTransactionManager dbTransactionManager;
@@ -27,9 +34,9 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public ReceiptDto transfer(TransactionDto data) {
         Account accountFrom = accountRepository.findByNumber(data.getFromNumber())
-                .orElseThrow(() -> new NotFoundException("wasn't found account with number " + data.getFromNumber()));
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + data.getFromNumber()));
         Account accountTo = accountRepository.findByNumber(data.getToNumber())
-                .orElseThrow(() -> new NotFoundException("invalid recipient number"));
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_RECIPIENT_NUMBER + data.getToNumber()));
         Money transactionMoney = getTransactionMoney(data);
         Transaction transaction = prepareTransaction(accountFrom, transactionMoney, accountTo);
         dbTransactionManager.execute(connection -> {
@@ -43,7 +50,8 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public ReceiptDto topUp(TransactionDto data) {
-        Account accountTo = accountRepository.findByNumber(data.getToNumber()).orElseThrow(() -> new NotFoundException("invalid recipient number"));
+        Account accountTo = accountRepository.findByNumber(data.getToNumber())
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_RECIPIENT_NUMBER + data.getToNumber()));
         Money transactionMoney = getTransactionMoney(data);
         Transaction transaction = prepareTransaction(null, transactionMoney, accountTo);
         dbTransactionManager.execute(connection -> {
@@ -56,7 +64,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public ReceiptDto withdraw(TransactionDto data) {
         Account accountFrom = accountRepository.findByNumber(data.getFromNumber())
-                .orElseThrow(() -> new NotFoundException("wasn't found account with number " + data.getFromNumber()));
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + data.getFromNumber()));
         Money transactionMoney = getTransactionMoney(data);
         Transaction transaction = prepareTransaction(accountFrom, transactionMoney, null);
         dbTransactionManager.execute(connection -> {
@@ -102,7 +110,7 @@ public class TransactionServiceImpl implements TransactionService {
         Account accountTo = created.getAccountTo();
         String transactionType;
         if (accountFrom != null && accountTo != null) {
-            transactionType = "transfer";
+            transactionType = TRANSACTION_TRANSFER;
             receipt.setCurrency(accountFrom.getCurrency());
             receipt.setAmount(created.getAccountFromAmount());
             receipt.setBankSender(accountFrom.getBank().getName());
@@ -110,19 +118,19 @@ public class TransactionServiceImpl implements TransactionService {
             receipt.setSenderNumberAccount(accountFrom.getNumber());
             receipt.setRecipientNumberAccount(accountTo.getNumber());
         } else if (accountFrom == null && accountTo != null) {
-            transactionType = "top up";
+            transactionType = TRANSACTION_TOP_UP;
             receipt.setCurrency(accountTo.getCurrency());
             receipt.setAmount(created.getAccountToAmount());
             receipt.setBankRecipient(accountTo.getBank().getName());
             receipt.setRecipientNumberAccount(accountTo.getNumber());
         } else if (accountFrom != null) {
-            transactionType = "withdrawal";
+            transactionType = TRANSACTION_WITHDRAWAL;
             receipt.setCurrency(accountFrom.getCurrency());
             receipt.setAmount(created.getAccountFromAmount());
             receipt.setBankSender(accountFrom.getBank().getName());
             receipt.setSenderNumberAccount(accountFrom.getNumber());
         } else {
-            throw new RuntimeException("Unknown transaction");
+            throw new RuntimeException(UNKNOWN_TRANSACTION);
         }
         receipt.setTransactionType(transactionType);
         return receipt;
@@ -132,7 +140,7 @@ public class TransactionServiceImpl implements TransactionService {
         BigDecimal paymentAmount = data.getAmount();
         BigDecimal accountFromAmountSize = accountFrom.getAmount();
         if (paymentAmount.compareTo(accountFromAmountSize) > 0) {
-            throw new TransactionException("Not enough funds in the account");
+            throw new TransactionException(EXC_MSG_NOT_ENOUGH_FUNDS_IN_THE_ACCOUNT);
         }
     }
 }

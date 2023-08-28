@@ -36,7 +36,7 @@ public class ProxyConnection implements Connection {
         try {
             realConnection.close();
         } catch (SQLException e) {
-            throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
+            throw new RuntimeException(e);
         }
     }
 

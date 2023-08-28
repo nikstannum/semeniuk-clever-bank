@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.data.entity.Account;
@@ -22,24 +21,6 @@ import ru.clevertec.data.repository.TransactionRepository;
 
 @RequiredArgsConstructor
 public class TransactionRepositoryImpl implements TransactionRepository {
-    private static final String FIND_ALL = """
-            SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time"
-            FROM transactions t
-            WHERE t.deleted = false
-            ORDER BY t.id
-            LIMIT ?
-            OFFSET ?
-            """;
-    private static final String DELETE_BY_ID = """
-            UPDATE transactions
-            SET deleted = true
-            WHERE id = ?
-            """;
-    private static final String UPDATE_TRANSACTION = """
-            UPDATE transactions
-            SET account_id = ?, destination_account_id = ?, account_amount = ?, destination_account_amount = ?
-            WHERE id = ?
-            """;
     private static final String CREATE_TRANSACTION = """
             INSERT INTO transactions (account_id, destination_account_id, account_amount, destination_account_amount)
             VALUES
@@ -74,6 +55,16 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 AND t."time" >= ?
             	AND t."time" <= ?) AS expense
             """;
+    private static final String COLUMN_INCOME = "income";
+    private static final String COLUMN_EXPENSE = "expense";
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_TIME = "time";
+    private static final String COLUMN_ACCOUNT_AMOUNT = "account_amount";
+    private static final String COLUMN_DESTINATION_ACCOUNT_AMOUNT = "destination_account_amount";
+    private static final String COLUMN_USER_FROM = "user_from";
+    private static final String COLUMN_ACCOUNT_ID = "account_id";
+    private static final String COLUMN_USER_TO = "user_to";
+    private static final String COLUMN_DESTINATION_ACCOUNT_ID = "destination_account_id";
     private final DataSource dataSource;
 
     @Override
@@ -89,11 +80,10 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             statement.setTimestamp(6, Timestamp.from(endDate));
             ResultSet resultSet = statement.executeQuery();
             resultSet.next();
-            map.put("income", resultSet.getBigDecimal("income"));
-            map.put("expense", resultSet.getBigDecimal("expense"));
+            map.put(COLUMN_INCOME, resultSet.getBigDecimal(COLUMN_INCOME));
+            map.put(COLUMN_EXPENSE, resultSet.getBigDecimal(COLUMN_EXPENSE));
             return map;
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
     }
@@ -121,9 +111,9 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
             while (keys.next()) {
-                Long id = keys.getLong("id");
+                Long id = keys.getLong(COLUMN_ID);
                 transaction.setId(id);
-                Instant time = keys.getTimestamp("time").toInstant();
+                Instant time = keys.getTimestamp(COLUMN_TIME).toInstant();
                 transaction.setTransactionTime(time);
             }
         } catch (SQLException e) {
@@ -146,61 +136,28 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             }
             return list;
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
     }
 
     private Transaction processTransactionsForUser(ResultSet rs) throws SQLException {
         Transaction transaction = new Transaction();
-        transaction.setId(rs.getLong("id"));
-        transaction.setAccountFromAmount(rs.getBigDecimal("account_amount"));
-        transaction.setAccountToAmount(rs.getBigDecimal("destination_account_amount"));
-        transaction.setTransactionTime(rs.getTimestamp("time").toInstant());
+        transaction.setId(rs.getLong(COLUMN_ID));
+        transaction.setAccountFromAmount(rs.getBigDecimal(COLUMN_ACCOUNT_AMOUNT));
+        transaction.setAccountToAmount(rs.getBigDecimal(COLUMN_DESTINATION_ACCOUNT_AMOUNT));
+        transaction.setTransactionTime(rs.getTimestamp(COLUMN_TIME).toInstant());
         User userFrom = new User();
-        userFrom.setLastName(rs.getString("user_from"));
+        userFrom.setLastName(rs.getString(COLUMN_USER_FROM));
         Account accountFrom = new Account();
-        accountFrom.setId(rs.getLong("account_id"));
+        accountFrom.setId(rs.getLong(COLUMN_ACCOUNT_ID));
         accountFrom.setUser(userFrom);
         transaction.setAccountFrom(accountFrom);
         User userTo = new User();
-        userTo.setLastName(rs.getString("user_to"));
+        userTo.setLastName(rs.getString(COLUMN_USER_TO));
         Account accountTo = new Account();
-        accountTo.setId(rs.getLong("destination_account_id"));
+        accountTo.setId(rs.getLong(COLUMN_DESTINATION_ACCOUNT_ID));
         accountTo.setUser(userTo);
         transaction.setAccountTo(accountTo);
         return transaction;
     }
-
-
-    @Override
-    public Optional<Transaction> findById(Long id) {
-        return Optional.empty();
-    }
-
-    //    @Override
-//    public Optional<Transaction> findById(Long id) {
-//        try (Connection connection = dataSource.getFreeConnections();
-//             PreparedStatement statement = connection.prepareStatement(FIND_BY_ID)) {
-//            statement.setLong(1, id);
-//            ResultSet resultSet = statement.executeQuery();
-//            if (resultSet.next()) {
-//                return Optional.of(process(resultSet));
-//            }
-//        } catch (SQLException e) {
-//            // FIXME add logging
-//        }
-//        return Optional.empty();
-//    }
-//
-//    private Transaction process(ResultSet rs) throws SQLException {
-//        Transaction transaction = new Transaction();
-//        transaction.setId(rs.getLong("id"));
-//        transaction.setAccountFromId(rs.getLong("account_id"));
-//        transaction.setAccountToId(rs.getLong("destination_account_id"));
-//        transaction.setAccountFromAmount(rs.getBigDecimal("account_amount"));
-//        transaction.setAccountToAmount(rs.getBigDecimal("destination_account_amount"));
-//        transaction.setTransactionTime(rs.getTimestamp("time").toInstant());
-//        return transaction;
-//    }
 }

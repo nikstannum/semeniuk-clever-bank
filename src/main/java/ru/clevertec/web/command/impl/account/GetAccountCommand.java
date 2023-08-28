@@ -3,6 +3,7 @@ package ru.clevertec.web.command.impl.account;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import ru.clevertec.service.dto.AccountDto;
 import ru.clevertec.service.dto.ExtractDto;
 import ru.clevertec.service.dto.ExtractStatementCreateDto;
 import ru.clevertec.service.dto.StatementDto;
+import ru.clevertec.service.exception.BadRequestException;
 import ru.clevertec.web.command.Command;
 import ru.clevertec.web.util.PagingUtil;
 import ru.clevertec.web.util.PagingUtil.Paging;
@@ -18,21 +20,25 @@ import ru.clevertec.web.util.PagingUtil.Paging;
 @RequiredArgsConstructor
 public class GetAccountCommand implements Command {
 
+    private static final String EXC_MSG_BAD_REQUEST = "Bad request";
+    private static final String PATH_VAR_EXTRACT = "extract";
+    private static final String PATH_VAR_STATEMENT = "statement";
+    private static final String URI_DIVIDER = "/";
     private final AccountService accountService;
     private final ObjectMapper objectMapper;
 
     @Override
-    public String execute(HttpServletRequest req) {
+    public String execute(HttpServletRequest req, HttpServletResponse res) {
         try {
             return completeOperation(req);
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e.getCause()); // FIXME add logging
+            throw new RuntimeException(e);
         }
     }
 
     private String completeOperation(HttpServletRequest req) throws IOException {
         String uri = req.getRequestURI().substring(1);
-        String[] parts = uri.split("/");
+        String[] parts = uri.split(URI_DIVIDER);
         switch (parts.length) {
             case 1 -> {
                 Paging paging = PagingUtil.getPaging(req);
@@ -41,10 +47,10 @@ public class GetAccountCommand implements Command {
             case 2 -> {
                 String pathVariable = parts[1];
                 switch (pathVariable.toLowerCase()) {
-                    case "extract" -> {
+                    case PATH_VAR_EXTRACT -> {
                         return processExtract(req);
                     }
-                    case "statement" -> {
+                    case PATH_VAR_STATEMENT -> {
                         return processStatement(req);
                     }
                     default -> {
@@ -52,7 +58,7 @@ public class GetAccountCommand implements Command {
                     }
                 }
             }
-            default -> throw new RuntimeException("Bad request");
+            default -> throw new BadRequestException(EXC_MSG_BAD_REQUEST);
         }
     }
 

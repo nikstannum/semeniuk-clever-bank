@@ -15,7 +15,6 @@ import ru.clevertec.data.entity.Bank;
 import ru.clevertec.data.entity.Currency;
 import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.AccountRepository;
-import ru.clevertec.service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 public class AccountRepositoryImpl implements AccountRepository {
@@ -105,6 +104,20 @@ public class AccountRepositoryImpl implements AccountRepository {
             LIMIT ?
             OFFSET ?
             """;
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_NUMBER = "number";
+    private static final String COLUMN_AMOUNT = "amount";
+    private static final String COLUMN_OPEN_TIME = "open_time";
+    private static final String ERROR_CALCULATING_INTEREST_FOR_ACCOUNT = "Error calculating interest for account ID = %d. Updated %d rows";
+    private static final String COLUMN_TOTAL = "total";
+    private static final String COLUMN_USER_ID = "user_id";
+    private static final String COLUMN_FIRST_NAME = "first_name";
+    private static final String COLUMN_LAST_NAME = "last_name";
+    private static final String COLUMN_EMAIL = "email";
+    private static final String COLUMN_BANK_ID = "bank_id";
+    private static final String COLUMN_NAME = "name";
+    private static final String COLUMN_BANK_IDENTIFIER = "bank_identifier";
+    private static final String COLUMN_CURRENCY = "currency";
 
     private final DataSource dataSource;
 
@@ -120,19 +133,17 @@ public class AccountRepositoryImpl implements AccountRepository {
                 list.add(processLazy(resultSet));
             }
             return list;
-        } catch (
-                SQLException e) {
-            // FIXME add logging
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
     private Account processLazy(ResultSet resultSet) throws SQLException {
         Account account = new Account();
-        account.setId(resultSet.getLong("id"));
-        account.setNumber(resultSet.getString("number"));
-        account.setAmount(resultSet.getBigDecimal("amount"));
-        account.setOpenTime(resultSet.getDate("open_time").toLocalDate());
+        account.setId(resultSet.getLong(COLUMN_ID));
+        account.setNumber(resultSet.getString(COLUMN_NUMBER));
+        account.setAmount(resultSet.getBigDecimal(COLUMN_AMOUNT));
+        account.setOpenTime(resultSet.getDate(COLUMN_OPEN_TIME).toLocalDate());
         return account;
     }
 
@@ -144,7 +155,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setLong(2, account.getId());
             int rowUpd = statement.executeUpdate();
             if (rowUpd != 1) {
-                throw new RuntimeException("Error calculating interest for account ID = " + account.getId() + " Updated " + rowUpd + " rows");
+                throw new RuntimeException(String.format(ERROR_CALCULATING_INTEREST_FOR_ACCOUNT, account.getId(), rowUpd));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -156,13 +167,11 @@ public class AccountRepositoryImpl implements AccountRepository {
         try {
             Statement statement = connection.createStatement();
             ResultSet rs = statement.executeQuery(COUNT_ACCOUNT_AMOUNT_MORE_ZERO);
-            if (rs.next()) {
-                return rs.getLong("total");
-            }
+            rs.next();
+            return rs.getLong(COLUMN_TOTAL);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        throw new RuntimeException("count of accounts not definition");
     }
 
     @Override
@@ -187,7 +196,7 @@ public class AccountRepositoryImpl implements AccountRepository {
                 return Optional.of(processEager(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }
@@ -201,15 +210,13 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setString(3, entity.getCurrency().toString());
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
-            if (keys.next()) {
-                Long id = keys.getLong("id");
-                return findById(id).orElseThrow(() -> new NotFoundException("Couldn't find account after its creation"));
-            }
+            keys.next();
+            Long id = keys.getLong(COLUMN_ID);
+            entity.setId(id);
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -222,7 +229,6 @@ public class AccountRepositoryImpl implements AccountRepository {
                 return Optional.of(processEager(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
         return Optional.empty();
@@ -230,22 +236,22 @@ public class AccountRepositoryImpl implements AccountRepository {
 
     private Account processEager(ResultSet resultSet) throws SQLException {
         Account account = new Account();
-        account.setId(resultSet.getLong("id"));
-        account.setNumber(resultSet.getString("number"));
-        account.setAmount(resultSet.getBigDecimal("amount"));
-        account.setOpenTime(resultSet.getDate("open_time").toLocalDate());
+        account.setId(resultSet.getLong(COLUMN_ID));
+        account.setNumber(resultSet.getString(COLUMN_NUMBER));
+        account.setAmount(resultSet.getBigDecimal(COLUMN_AMOUNT));
+        account.setOpenTime(resultSet.getDate(COLUMN_OPEN_TIME).toLocalDate());
         User user = new User();
-        user.setId(resultSet.getLong("user_id"));
-        user.setFirstName(resultSet.getString("first_name"));
-        user.setLastName(resultSet.getString("last_name"));
-        user.setEmail(resultSet.getString("email"));
+        user.setId(resultSet.getLong(COLUMN_USER_ID));
+        user.setFirstName(resultSet.getString(COLUMN_FIRST_NAME));
+        user.setLastName(resultSet.getString(COLUMN_LAST_NAME));
+        user.setEmail(resultSet.getString(COLUMN_EMAIL));
         account.setUser(user);
         Bank bank = new Bank();
-        bank.setId(resultSet.getLong("bank_id"));
-        bank.setName(resultSet.getString("name"));
-        bank.setBankIdentifier(resultSet.getString("bank_identifier"));
+        bank.setId(resultSet.getLong(COLUMN_BANK_ID));
+        bank.setName(resultSet.getString(COLUMN_NAME));
+        bank.setBankIdentifier(resultSet.getString(COLUMN_BANK_IDENTIFIER));
         account.setBank(bank);
-        account.setCurrency(Currency.valueOf(resultSet.getString("currency")));
+        account.setCurrency(Currency.valueOf(resultSet.getString(COLUMN_CURRENCY)));
         return account;
     }
 
@@ -262,7 +268,6 @@ public class AccountRepositoryImpl implements AccountRepository {
             }
             return list;
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
     }
@@ -275,11 +280,10 @@ public class AccountRepositoryImpl implements AccountRepository {
             statement.setBigDecimal(2, entity.getAmount());
             statement.setLong(3, entity.getId());
             statement.executeUpdate();
-            return findById(entity.getId()).orElseThrow(() -> new NotFoundException("Couldn't find account after its updating"));
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -287,12 +291,8 @@ public class AccountRepositoryImpl implements AccountRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
             statement.setLong(1, id);
-            int rowsDelete = statement.executeUpdate();
-            if (rowsDelete != 1) {
-                throw new RuntimeException("Error when deleting account. The change affected " + rowsDelete + " rows");
-            }
+            statement.executeUpdate();
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
     }
@@ -302,12 +302,8 @@ public class AccountRepositoryImpl implements AccountRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_NUMBER)) {
             statement.setString(1, number);
-            int rowsDelete = statement.executeUpdate();
-            if (rowsDelete != 1) {
-                throw new RuntimeException("Error when deleting account. The change affected " + rowsDelete + " rows");
-            }
+            statement.executeUpdate();
         } catch (SQLException e) {
-            // FIXME add logging
             throw new RuntimeException(e);
         }
     }

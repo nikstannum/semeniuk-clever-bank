@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.data.entity.Bank;
 import ru.clevertec.data.repository.BankRepository;
-import ru.clevertec.service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 public class BankRepositoryImpl implements BankRepository {
@@ -49,6 +48,9 @@ public class BankRepositoryImpl implements BankRepository {
             SET "name" = ?, bank_identifier = ?
             WHERE id = ?;
             """;
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_NAME = "name";
+    private static final String COLUMN_BANK_IDENTIFIER = "bank_identifier";
     private final DataSource dataSource;
 
     @Override
@@ -59,11 +61,10 @@ public class BankRepositoryImpl implements BankRepository {
             statement.setString(2, entity.getBankIdentifier());
             statement.setLong(3, entity.getId());
             statement.executeUpdate();
-            return findById(entity.getId()).orElseThrow(() -> new NotFoundException("Couldn't find account after its updating"));
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -71,9 +72,9 @@ public class BankRepositoryImpl implements BankRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BANK_BY_ID)) {
             statement.setLong(1, id);
-            int rowsDelete = statement.executeUpdate();
+            statement.executeUpdate();
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
     }
 
@@ -90,9 +91,8 @@ public class BankRepositoryImpl implements BankRepository {
             }
             return list;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return list;
     }
 
     @Override
@@ -105,7 +105,7 @@ public class BankRepositoryImpl implements BankRepository {
                 return Optional.of(process(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }
@@ -120,16 +120,16 @@ public class BankRepositoryImpl implements BankRepository {
                 return Optional.of(process(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }
 
     private Bank process(ResultSet resultSet) throws SQLException {
         Bank bank = new Bank();
-        bank.setId(resultSet.getLong("id"));
-        bank.setName(resultSet.getString("name"));
-        bank.setBankIdentifier(resultSet.getString("bank_identifier"));
+        bank.setId(resultSet.getLong(COLUMN_ID));
+        bank.setName(resultSet.getString(COLUMN_NAME));
+        bank.setBankIdentifier(resultSet.getString(COLUMN_BANK_IDENTIFIER));
         return bank;
     }
 
@@ -141,13 +141,12 @@ public class BankRepositoryImpl implements BankRepository {
             statement.setString(2, entity.getBankIdentifier());
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
-            if (keys.next()) {
-                Long id = keys.getLong("id");
-                return findById(id).orElseThrow(() -> new NotFoundException("Couldn't find bank after its creation"));
-            }
+            keys.next();
+            Long id = keys.getLong(COLUMN_ID);
+            entity.setId(id);
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return null;
     }
 }

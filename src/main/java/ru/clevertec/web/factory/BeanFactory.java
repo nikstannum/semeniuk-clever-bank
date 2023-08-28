@@ -31,6 +31,7 @@ import ru.clevertec.web.command.impl.account.DeleteAccountCommand;
 import ru.clevertec.web.command.impl.account.GetAccountCommand;
 import ru.clevertec.web.command.impl.account.PostAccountCommand;
 import ru.clevertec.web.command.impl.account.PutAccountCommand;
+import ru.clevertec.web.command.impl.error.ErrorCommand;
 import ru.clevertec.web.command.impl.transaction.PostTransactionCommand;
 
 public class BeanFactory implements Closeable {
@@ -79,6 +80,7 @@ public class BeanFactory implements Closeable {
         beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
         beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper));
         beans.put("accrualService", accrualService);
+        beans.put("error", new ErrorCommand(objectMapper));
 
     }
 

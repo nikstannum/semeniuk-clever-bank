@@ -36,6 +36,20 @@ import ru.clevertec.web.util.PagingUtil.Paging;
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
 
+    private static final long ZERO_ACCOUNTS_INTEREST_ACCRUAL = 0L;
+    private static final int LIMIT_DEFAULT = 10;
+    private static final int PERCENT_100 = 100;
+    private static final int ROUNDING_ACCURACY = 2;
+    private static final String EXC_MSG_NOT_FOUND_ACCOUNT_BY_ID = "Not found account with id = ";
+    private static final String EXC_MSG_NOT_FOUND_BANK_BY_IDENTIFIER = "The specified bank does not exist";
+    private static final String EXC_MSG_USER_REGISTRATION_REQUIRED = "User registration required";
+    private static final String EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER = "Wasn't found account with number ";
+    private static final String TRANSACTION_TRANSFER_TO = "transfer to ";
+    private static final String TRANSACTION_REPLENISHMENT_FROM = "replenishment from ";
+    private static final String TRANSACTION_REPLENISHMENT = "replenishment";
+    private static final String TRANSACTION_CASH_WITHDRAWAL = "cash withdrawal";
+    private static final String UNKNOWN_TRANSACTION = "Unknown transaction";
+    private static final String DATE_FORMAT_DD_MM_YYYY = "dd.MM.yyyy";
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final BankRepository bankRepository;
@@ -47,17 +61,19 @@ public class AccountServiceImpl implements AccountService {
     public void accrueInterest() {
         dbTransactionManager.execute(connection -> {
                     Long count = accountRepository.countAccountWithAmountMoreZero(connection);
-                    if (count.equals(0L)) {
+                    if (count.equals(ZERO_ACCOUNTS_INTEREST_ACCRUAL)) {
                         return;
                     }
-                    int limit = count < 10 ? count.intValue() : 10;
-                    long iterationsQuantity = count / 10 + 1;
+                    int limit = count < LIMIT_DEFAULT ? count.intValue() : LIMIT_DEFAULT;
+                    long iterationsQuantity = count / LIMIT_DEFAULT + 1;
                     for (long i = 0; i < iterationsQuantity; i++) {
-                        long offset = 10 * i;
+                        long offset = LIMIT_DEFAULT * i;
                         List<Account> list = accountRepository.findAllAmountMoreZero(limit, offset, connection);
                         for (Account account : list) {
                             BigDecimal currentAmount = account.getAmount();
-                            BigDecimal accrualAmount = currentAmount.multiply(percent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                            BigDecimal accrualAmount = currentAmount
+                                    .multiply(percent)
+                                    .divide(BigDecimal.valueOf(PERCENT_100), ROUNDING_ACCURACY, RoundingMode.HALF_UP);
                             BigDecimal newAmount = currentAmount.add(accrualAmount);
                             account.setAmount(newAmount);
                             accountRepository.updateAmountByNumber(account, connection);
@@ -73,7 +89,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto getById(Long id) {
-        Account account = accountRepository.findById(id).orElseThrow(() -> new NotFoundException("Not found account with id = " + id));
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_ID + id));
         return toDto(account);
     }
 
@@ -91,8 +108,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto update(AccountUpdateDto dto) {
-        Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier()).orElseThrow(() -> new NotFoundException("The specified bank does not " +
-                "exist"));
+        Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier())
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_BANK_BY_IDENTIFIER));
         Account account = new Account();
         account.setId(dto.getId());
         account.setBank(bank);
@@ -103,9 +120,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AccountDto create(AccountCreateDto dto) {
-        User user = userRepository.findUserByEmail(dto.getEmail()).orElseThrow(() -> new NotFoundException("User registration required"));
-        Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier()).orElseThrow(() -> new NotFoundException("The specified bank does not " +
-                "exist"));
+        User user = userRepository.findUserByEmail(dto.getEmail())
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_USER_REGISTRATION_REQUIRED));
+        Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier())
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_BANK_BY_IDENTIFIER));
         Account account = new Account();
         account.setUser(user);
         account.setBank(bank);
@@ -117,7 +135,8 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public ExtractDto getExtract(ExtractStatementCreateDto createDto) {
         String number = createDto.getAccountNumber();
-        Account account = accountRepository.findByNumber(number).orElseThrow(() -> new NotFoundException("account wasn't found"));
+        Account account = accountRepository.findByNumber(number)
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + number));
         Long id = account.getId();
         LocalDate dateFrom = createDto.getPeriodFrom();
         Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
@@ -135,7 +154,8 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public StatementDto getMoneyStatement(ExtractStatementCreateDto createDto) {
         String number = createDto.getAccountNumber();
-        Account account = accountRepository.findByNumber(number).orElseThrow(() -> new NotFoundException("account wasn't found"));
+        Account account = accountRepository.findByNumber(number)
+                .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + number));
         Long id = account.getId();
         LocalDate dateFrom = createDto.getPeriodFrom();
         Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
@@ -176,19 +196,19 @@ public class AccountServiceImpl implements AccountService {
                     if (moneyFrom != null && moneyTo != null) {
                         if (accountId.equals(idFrom)) {
                             amount = transaction.getAccountFromAmount().negate();
-                            transactionType = "transfer to " + transaction.getAccountTo().getUser().getLastName();
+                            transactionType = TRANSACTION_TRANSFER_TO + transaction.getAccountTo().getUser().getLastName();
                         } else {
                             amount = transaction.getAccountToAmount();
-                            transactionType = "replenishment from " + transaction.getAccountFrom().getUser().getLastName();
+                            transactionType = TRANSACTION_REPLENISHMENT_FROM + transaction.getAccountFrom().getUser().getLastName();
                         }
                     } else if (moneyFrom == null && moneyTo != null) {
                         amount = transaction.getAccountToAmount();
-                        transactionType = "replenishment";
+                        transactionType = TRANSACTION_REPLENISHMENT;
                     } else if (moneyFrom != null) {
                         amount = transaction.getAccountFromAmount().negate();
-                        transactionType = "cash withdrawal";
+                        transactionType = TRANSACTION_CASH_WITHDRAWAL;
                     } else {
-                        throw new RuntimeException("Unknown transaction");
+                        throw new RuntimeException(UNKNOWN_TRANSACTION);
                     }
                     list.add(transactionType);
                     list.add(amount.toString());
@@ -197,7 +217,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     private void addFormattedTime(Transaction transaction, List<String> list) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT_DD_MM_YYYY);
         LocalDate time = transaction.getTransactionTime().atZone(ZoneId.systemDefault()).toLocalDate();
         String formattedDate = time.format(formatter);
         list.add(formattedDate);

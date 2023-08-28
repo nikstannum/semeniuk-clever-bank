@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import ru.clevertec.data.connection.DataSource;
 import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.UserRepository;
-import ru.clevertec.service.exception.NotFoundException;
 
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
@@ -49,6 +48,10 @@ public class UserRepositoryImpl implements UserRepository {
             SET deleted = true
             WHERE id = ?
             """;
+    private static final String COLUMN_ID = "id";
+    private static final String COLUMN_FIRST_NAME = "first_name";
+    private static final String COLUMN_LAST_NAME = "last_name";
+    private static final String COLUMN_EMAIL = "email";
     private final DataSource dataSource;
 
     @Override
@@ -56,9 +59,9 @@ public class UserRepositoryImpl implements UserRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_USER_BY_ID)) {
             statement.setLong(1, id);
-            int rowsDelete = statement.executeUpdate();
+            statement.executeUpdate();
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
     }
 
@@ -71,11 +74,10 @@ public class UserRepositoryImpl implements UserRepository {
             statement.setString(3, entity.getEmail());
             statement.setLong(4, entity.getId());
             statement.executeUpdate();
-            return findById(entity.getId()).orElseThrow(() -> new NotFoundException("Couldn't find account after its updating"));
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override
@@ -91,9 +93,8 @@ public class UserRepositoryImpl implements UserRepository {
             }
             return list;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return list;
     }
 
     @Override
@@ -106,7 +107,7 @@ public class UserRepositoryImpl implements UserRepository {
                 return Optional.of(process(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }
@@ -120,22 +121,21 @@ public class UserRepositoryImpl implements UserRepository {
             statement.setString(3, entity.getEmail());
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
-            if (keys.next()) {
-                Long id = keys.getLong("id");
-                return findById(id).orElseThrow(() -> new NotFoundException("Couldn't find user after its creation"));
-            }
+            keys.next();
+            Long id = keys.getLong(COLUMN_ID);
+            entity.setId(id);
+            return entity;
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     private User process(ResultSet resultSet) throws SQLException {
         User user = new User();
-        user.setId(resultSet.getLong("id"));
-        user.setFirstName(resultSet.getString("first_name"));
-        user.setLastName(resultSet.getString("last_name"));
-        user.setEmail(resultSet.getString("email"));
+        user.setId(resultSet.getLong(COLUMN_ID));
+        user.setFirstName(resultSet.getString(COLUMN_FIRST_NAME));
+        user.setLastName(resultSet.getString(COLUMN_LAST_NAME));
+        user.setEmail(resultSet.getString(COLUMN_EMAIL));
         return user;
     }
 
@@ -149,7 +149,7 @@ public class UserRepositoryImpl implements UserRepository {
                 return Optional.of(process(resultSet));
             }
         } catch (SQLException e) {
-            // FIXME add logging
+            throw new RuntimeException(e);
         }
         return Optional.empty();
     }

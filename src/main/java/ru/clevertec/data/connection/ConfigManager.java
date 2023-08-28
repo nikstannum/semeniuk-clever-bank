@@ -18,7 +18,7 @@ public class ConfigManager {
         try (InputStream input = getClass().getResourceAsStream(propsFile)) {
             map = yaml.load(input);
         } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e.getCause());
+            throw new RuntimeException(e);
         }
     }
 
