@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import ru.clevertec.service.impl.AccrualServiceImpl;
-import ru.clevertec.web.factory.BeanFactory;
+import ru.clevertec.factory.BeanFactory;
 
 @WebListener
 //@Log4j2

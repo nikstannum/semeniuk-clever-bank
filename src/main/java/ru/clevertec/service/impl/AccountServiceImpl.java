@@ -79,7 +79,7 @@ public class AccountServiceImpl implements AccountService {
                             accountRepository.updateAmountByNumber(account, connection);
                             Transaction transaction = new Transaction();
                             transaction.setAccountTo(account);
-                            transaction.setAccountToAmount(accrualAmount);
+                            transaction.setAccountAmountTo(accrualAmount);
                             transactionRepository.createTransaction(transaction, connection);
                         }
                     }
@@ -160,11 +160,12 @@ public class AccountServiceImpl implements AccountService {
         LocalDate dateFrom = createDto.getPeriodFrom();
         Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
         LocalDate dateTo = createDto.getPeriodTo();
-        Instant instantTo = dateTo.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        Instant instantTo = dateTo.plusDays(1).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
         StatementDto result = new StatementDto();
         CommonInformationDto commonInformation = getCommonInformation(createDto, account);
         result.setCommonInformationDto(commonInformation);
         Map<String, BigDecimal> incomeExpenseMap = transactionRepository.findIncomeAndExpenseForUser(instantFrom, instantTo, id);
+        incomeExpenseMap.put("expense", incomeExpenseMap.get("expense").negate());
         result.setIncomeExpense(incomeExpenseMap);
         return result;
     }
@@ -189,23 +190,23 @@ public class AccountServiceImpl implements AccountService {
                     List<String> list = new ArrayList<>();
                     addFormattedTime(transaction, list);
                     Long idFrom = transaction.getAccountFrom().getId();
-                    BigDecimal moneyFrom = transaction.getAccountFromAmount();
-                    BigDecimal moneyTo = transaction.getAccountToAmount();
+                    BigDecimal moneyFrom = transaction.getAccountAmountFrom();
+                    BigDecimal moneyTo = transaction.getAccountAmountTo();
                     String transactionType;
                     BigDecimal amount;
                     if (moneyFrom != null && moneyTo != null) {
                         if (accountId.equals(idFrom)) {
-                            amount = transaction.getAccountFromAmount().negate();
+                            amount = transaction.getAccountAmountFrom().negate();
                             transactionType = TRANSACTION_TRANSFER_TO + transaction.getAccountTo().getUser().getLastName();
                         } else {
-                            amount = transaction.getAccountToAmount();
+                            amount = transaction.getAccountAmountTo();
                             transactionType = TRANSACTION_REPLENISHMENT_FROM + transaction.getAccountFrom().getUser().getLastName();
                         }
                     } else if (moneyFrom == null && moneyTo != null) {
-                        amount = transaction.getAccountToAmount();
+                        amount = transaction.getAccountAmountTo();
                         transactionType = TRANSACTION_REPLENISHMENT;
                     } else if (moneyFrom != null) {
-                        amount = transaction.getAccountFromAmount().negate();
+                        amount = transaction.getAccountAmountFrom().negate();
                         transactionType = TRANSACTION_CASH_WITHDRAWAL;
                     } else {
                         throw new RuntimeException(UNKNOWN_TRANSACTION);

@@ -47,13 +47,13 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 WHERE t.account_id = ?
                 AND t.deleted = FALSE
                 AND t."time" >= ?
-            	AND t."time" <= ?) AS income,
+            	AND t."time" <= ?) AS expense,
                 (SELECT COALESCE(SUM(destination_account_amount), 0)
                 FROM transactions t
                 WHERE t.destination_account_id = ?
                 AND t.deleted = FALSE
                 AND t."time" >= ?
-            	AND t."time" <= ?) AS expense
+            	AND t."time" <= ?) AS income
             """;
     private static final String COLUMN_INCOME = "income";
     private static final String COLUMN_EXPENSE = "expense";
@@ -98,7 +98,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 statement.setBigDecimal(3, null);
             } else {
                 statement.setLong(1, accountFrom.getId());
-                statement.setBigDecimal(3, transaction.getAccountFromAmount());
+                statement.setBigDecimal(3, transaction.getAccountAmountFrom());
             }
             Account accountTo = transaction.getAccountTo();
             if (accountTo == null) {
@@ -106,7 +106,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
                 statement.setBigDecimal(4, null);
             } else {
                 statement.setLong(2, accountTo.getId());
-                statement.setBigDecimal(4, transaction.getAccountToAmount());
+                statement.setBigDecimal(4, transaction.getAccountAmountTo());
             }
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
@@ -143,8 +143,8 @@ public class TransactionRepositoryImpl implements TransactionRepository {
     private Transaction processTransactionsForUser(ResultSet rs) throws SQLException {
         Transaction transaction = new Transaction();
         transaction.setId(rs.getLong(COLUMN_ID));
-        transaction.setAccountFromAmount(rs.getBigDecimal(COLUMN_ACCOUNT_AMOUNT));
-        transaction.setAccountToAmount(rs.getBigDecimal(COLUMN_DESTINATION_ACCOUNT_AMOUNT));
+        transaction.setAccountAmountFrom(rs.getBigDecimal(COLUMN_ACCOUNT_AMOUNT));
+        transaction.setAccountAmountTo(rs.getBigDecimal(COLUMN_DESTINATION_ACCOUNT_AMOUNT));
         transaction.setTransactionTime(rs.getTimestamp(COLUMN_TIME).toInstant());
         User userFrom = new User();
         userFrom.setLastName(rs.getString(COLUMN_USER_FROM));

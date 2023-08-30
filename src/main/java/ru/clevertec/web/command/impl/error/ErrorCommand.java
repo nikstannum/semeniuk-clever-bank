@@ -27,7 +27,7 @@ public class ErrorCommand implements Command {
 
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {
-        Exception e = (Exception) req.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+        Throwable e = (Throwable) req.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
         res.setContentType(CONTENT_TYPE_APP_JSON);
         if (e instanceof NotFoundException) {
             ErrorDto errorDto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());

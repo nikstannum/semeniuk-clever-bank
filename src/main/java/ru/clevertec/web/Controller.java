@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import ru.clevertec.web.command.Command;
-import ru.clevertec.web.factory.BeanFactory;
+import ru.clevertec.factory.BeanFactory;
 
 @WebServlet("/")
 public class Controller extends HttpServlet {

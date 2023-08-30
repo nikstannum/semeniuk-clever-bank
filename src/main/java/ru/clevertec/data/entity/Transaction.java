@@ -9,7 +9,7 @@ public class Transaction {
     private Long id;
     private Account accountFrom;
     private Account accountTo;
-    private BigDecimal accountFromAmount;
-    private BigDecimal accountToAmount;
+    private BigDecimal accountAmountFrom;
+    private BigDecimal accountAmountTo;
     private Instant transactionTime;
 }

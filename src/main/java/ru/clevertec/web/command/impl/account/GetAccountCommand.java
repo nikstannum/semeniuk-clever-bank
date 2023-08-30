@@ -5,14 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.dto.AccountDto;
+import ru.clevertec.service.dto.CommonInformationDto;
 import ru.clevertec.service.dto.ExtractDto;
 import ru.clevertec.service.dto.ExtractStatementCreateDto;
 import ru.clevertec.service.dto.StatementDto;
 import ru.clevertec.service.exception.BadRequestException;
+import ru.clevertec.service.util.serializer.Serializable;
+import ru.clevertec.service.util.serializer.Writable;
 import ru.clevertec.web.command.Command;
 import ru.clevertec.web.util.PagingUtil;
 import ru.clevertec.web.util.PagingUtil.Paging;
@@ -26,6 +30,8 @@ public class GetAccountCommand implements Command {
     private static final String URI_DIVIDER = "/";
     private final AccountService accountService;
     private final ObjectMapper objectMapper;
+    private final Serializable serializable;
+    private final Writable writable;
 
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {
@@ -66,6 +72,7 @@ public class GetAccountCommand implements Command {
         byte[] bytes = req.getInputStream().readAllBytes();
         ExtractStatementCreateDto dto = objectMapper.readValue(bytes, ExtractStatementCreateDto.class);
         ExtractDto result = accountService.getExtract(dto);
+        printReport(serializable.serialize(result), result.getCommonInformationDto());
         return objectMapper.writeValueAsString(result);
     }
 
@@ -73,9 +80,9 @@ public class GetAccountCommand implements Command {
         byte[] bytes = req.getInputStream().readAllBytes();
         ExtractStatementCreateDto dto = objectMapper.readValue(bytes, ExtractStatementCreateDto.class);
         StatementDto result = accountService.getMoneyStatement(dto);
+        printReport(serializable.serialize(result), result.getCommonInformationDto());
         return objectMapper.writeValueAsString(result);
     }
-
 
     private String processAll(Paging paging) throws JsonProcessingException {
         List<AccountDto> list = accountService.getAll(paging);
@@ -91,5 +98,10 @@ public class GetAccountCommand implements Command {
         }
         AccountDto dto = accountService.getById(id);
         return objectMapper.writeValueAsString(dto);
+    }
+
+    private void printReport(String serialized, CommonInformationDto commonInf) {
+        String fileName = commonInf.getFormationTime().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+        writable.write(serialized, fileName);
     }
 }

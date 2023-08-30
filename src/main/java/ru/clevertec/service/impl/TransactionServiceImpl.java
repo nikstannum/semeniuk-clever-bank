@@ -89,7 +89,7 @@ public class TransactionServiceImpl implements TransactionService {
             BigDecimal newAmountAccountFrom = accountFrom.getAmount().subtract(transactionAmountInDestinationCurrency);
             accountFrom.setAmount(newAmountAccountFrom);
             transaction.setAccountFrom(accountFrom);
-            transaction.setAccountFromAmount(transactionAmountInDestinationCurrency);
+            transaction.setAccountAmountFrom(transactionAmountInDestinationCurrency);
         }
         if (accountTo != null) {
             Currency currencyTo = accountTo.getCurrency();
@@ -97,7 +97,7 @@ public class TransactionServiceImpl implements TransactionService {
             BigDecimal newAmountAccountTo = accountTo.getAmount().add(transactionAmountInDestinationCurrency);
             accountTo.setAmount(newAmountAccountTo);
             transaction.setAccountTo(accountTo);
-            transaction.setAccountToAmount(transactionAmountInDestinationCurrency);
+            transaction.setAccountAmountTo(transactionAmountInDestinationCurrency);
         }
         return transaction;
     }
@@ -112,7 +112,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (accountFrom != null && accountTo != null) {
             transactionType = TRANSACTION_TRANSFER;
             receipt.setCurrency(accountFrom.getCurrency());
-            receipt.setAmount(created.getAccountFromAmount());
+            receipt.setAmount(created.getAccountAmountFrom());
             receipt.setBankSender(accountFrom.getBank().getName());
             receipt.setBankRecipient(accountTo.getBank().getName());
             receipt.setSenderNumberAccount(accountFrom.getNumber());
@@ -120,13 +120,13 @@ public class TransactionServiceImpl implements TransactionService {
         } else if (accountFrom == null && accountTo != null) {
             transactionType = TRANSACTION_TOP_UP;
             receipt.setCurrency(accountTo.getCurrency());
-            receipt.setAmount(created.getAccountToAmount());
+            receipt.setAmount(created.getAccountAmountTo());
             receipt.setBankRecipient(accountTo.getBank().getName());
             receipt.setRecipientNumberAccount(accountTo.getNumber());
         } else if (accountFrom != null) {
             transactionType = TRANSACTION_WITHDRAWAL;
             receipt.setCurrency(accountFrom.getCurrency());
-            receipt.setAmount(created.getAccountFromAmount());
+            receipt.setAmount(created.getAccountAmountFrom());
             receipt.setBankSender(accountFrom.getBank().getName());
             receipt.setSenderNumberAccount(accountFrom.getNumber());
         } else {
