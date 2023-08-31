@@ -1,7 +1,5 @@
 package ru.clevertec.service.util.serializer.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -26,10 +24,7 @@ public class PDFWriter implements Writable {
             document.addPage(page);
             PDPageContentStream stream = new PDPageContentStream(document, page);
             stream.beginText();
-            String classesRoot = Objects.requireNonNull(PDFWriter.class.getResource("/")).getPath();
-            String fontResource = classesRoot + "../" + fontPath;
-            File fontFile = new File(fontResource);
-            InputStream fontStream = new FileInputStream(fontFile);
+            InputStream fontStream = Objects.requireNonNull(getClass().getResourceAsStream(fontPath));
             PDType0Font font = PDType0Font.load(document, fontStream, false);
             stream.setFont(font, 12);
             stream.newLineAtOffset(25, 700);
@@ -41,13 +36,10 @@ public class PDFWriter implements Writable {
             }
             stream.endText();
             stream.close();
-            File file = new File(classesRoot);
-            String root = file.getParentFile().getParentFile().getParentFile().getCanonicalPath();
-            String dest = root + "/" + destinationDir;
-            Path pathDir = Path.of(dest);
+            Path pathDir = Path.of(destinationDir);
             Files.createDirectories(pathDir);
-            fileName = pathDir + "/" + fileName + ".pdf";
-            document.save(fileName);
+            Path path = pathDir.resolve(fileName + ".pdf");
+            document.save(path.toFile());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -10,7 +10,7 @@ import ru.clevertec.service.TransactionService;
 import ru.clevertec.service.dto.ReceiptDto;
 import ru.clevertec.service.dto.TransactionDto;
 import ru.clevertec.service.exception.BadRequestException;
-import ru.clevertec.service.util.serializer.Serializable;
+import ru.clevertec.service.util.serializer.Serializer;
 import ru.clevertec.service.util.serializer.Writable;
 import ru.clevertec.web.command.Command;
 
@@ -19,7 +19,7 @@ public class PostTransactionCommand implements Command {
     private static final String EXC_MSG_INVALID_INPUT_DATA = "invalid input data";
     private final TransactionService service;
     private final ObjectMapper objectMapper;
-    private final Serializable serializable;
+    private final Serializer appSerializable;
     private final Writable writable;
 
     @Override
@@ -73,7 +73,7 @@ public class PostTransactionCommand implements Command {
     }
 
     private void printReceipt(ReceiptDto receipt) {
-        String content = serializable.serialize(receipt);
+        String content = appSerializable.serialize(receipt);
         writable.write(content, receipt.getReceiptNumber().toString());
     }
 }

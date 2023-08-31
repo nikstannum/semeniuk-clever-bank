@@ -15,7 +15,7 @@ import ru.clevertec.service.dto.ExtractDto;
 import ru.clevertec.service.dto.ExtractStatementCreateDto;
 import ru.clevertec.service.dto.StatementDto;
 import ru.clevertec.service.exception.BadRequestException;
-import ru.clevertec.service.util.serializer.Serializable;
+import ru.clevertec.service.util.serializer.Serializer;
 import ru.clevertec.service.util.serializer.Writable;
 import ru.clevertec.web.command.Command;
 import ru.clevertec.web.util.PagingUtil;
@@ -30,7 +30,7 @@ public class GetAccountCommand implements Command {
     private static final String URI_DIVIDER = "/";
     private final AccountService accountService;
     private final ObjectMapper objectMapper;
-    private final Serializable serializable;
+    private final Serializer appSerializable;
     private final Writable writable;
 
     @Override
@@ -72,7 +72,7 @@ public class GetAccountCommand implements Command {
         byte[] bytes = req.getInputStream().readAllBytes();
         ExtractStatementCreateDto dto = objectMapper.readValue(bytes, ExtractStatementCreateDto.class);
         ExtractDto result = accountService.getExtract(dto);
-        printReport(serializable.serialize(result), result.getCommonInformationDto());
+        printReport(appSerializable.serialize(result), result.getCommonInformationDto());
         return objectMapper.writeValueAsString(result);
     }
 
@@ -80,7 +80,7 @@ public class GetAccountCommand implements Command {
         byte[] bytes = req.getInputStream().readAllBytes();
         ExtractStatementCreateDto dto = objectMapper.readValue(bytes, ExtractStatementCreateDto.class);
         StatementDto result = accountService.getMoneyStatement(dto);
-        printReport(serializable.serialize(result), result.getCommonInformationDto());
+        printReport(appSerializable.serialize(result), result.getCommonInformationDto());
         return objectMapper.writeValueAsString(result);
     }
 

@@ -4,7 +4,7 @@ import ru.clevertec.service.dto.ExtractDto;
 import ru.clevertec.service.dto.ReceiptDto;
 import ru.clevertec.service.dto.StatementDto;
 
-public interface Serializable {
+public interface Serializer {
 
     <T> T serialize(ReceiptDto receiptDto);
 

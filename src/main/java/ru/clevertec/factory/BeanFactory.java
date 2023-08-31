@@ -24,10 +24,10 @@ import ru.clevertec.data.repository.impl.UserRepositoryImpl;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.TransactionService;
 import ru.clevertec.service.impl.AccountServiceImpl;
-import ru.clevertec.service.impl.AccrualServiceImpl;
+import ru.clevertec.service.impl.InterestServiceImpl;
 import ru.clevertec.service.impl.TransactionServiceImpl;
 import ru.clevertec.service.util.MoneyUtil;
-import ru.clevertec.service.util.serializer.Serializable;
+import ru.clevertec.service.util.serializer.Serializer;
 import ru.clevertec.service.util.serializer.Writable;
 import ru.clevertec.service.util.serializer.impl.PDFWriter;
 import ru.clevertec.service.util.serializer.impl.StringSerializer;
@@ -75,9 +75,9 @@ public class BeanFactory implements Closeable {
         TransactionService transactionService = new TransactionServiceImpl(transactionRepository, accountRepository, dbTransactionManager, moneyUtil);
         BigDecimal periodStr = new BigDecimal(String.valueOf(interestProps.get("periodicity")));
         Long periodicity = periodStr.longValue();
-        AccrualServiceImpl accrualService = new AccrualServiceImpl(accountService, periodicity);
+        InterestServiceImpl accrualService = new InterestServiceImpl(accountService, periodicity);
         closeables.add(accrualService);
-        Serializable serializable = new StringSerializer();
+        Serializer appSerializable = new StringSerializer();
         @SuppressWarnings("unchecked")
         Map<String, String> checkProps = (Map<String, String>) configManager.getProperty("check");
         String fontPath = checkProps.get("font-path");
@@ -89,11 +89,11 @@ public class BeanFactory implements Closeable {
         } else {
             writable = new TXTWriter(destDir);
         }
-        beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper, serializable, writable));
+        beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper, appSerializable, writable));
         beans.put("accountsDELETE", new DeleteAccountCommand(accountService));
         beans.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
         beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
-        beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, serializable, writable));
+        beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, appSerializable, writable));
         beans.put("accrualService", accrualService);
         beans.put("error", new ErrorCommand(objectMapper));
 

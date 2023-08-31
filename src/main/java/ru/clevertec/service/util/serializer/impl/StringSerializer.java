@@ -11,9 +11,9 @@ import ru.clevertec.service.dto.CommonInformationDto;
 import ru.clevertec.service.dto.ExtractDto;
 import ru.clevertec.service.dto.ReceiptDto;
 import ru.clevertec.service.dto.StatementDto;
-import ru.clevertec.service.util.serializer.Serializable;
+import ru.clevertec.service.util.serializer.Serializer;
 
-public class StringSerializer implements Serializable {
+public class StringSerializer implements Serializer {
 
     private static final int FIELD_WIDTH_FOR_CHECK = 45;
     private static final int STRING_LENGTH_FOR_CHECK = 43;
