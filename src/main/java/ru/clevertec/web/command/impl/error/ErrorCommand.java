@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import ru.clevertec.service.dto.ErrorDto;
 import ru.clevertec.service.exception.BadRequestException;
+import ru.clevertec.service.exception.EntityExistsException;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.service.exception.TransactionException;
 import ru.clevertec.web.command.Command;
@@ -36,6 +37,10 @@ public class ErrorCommand implements Command {
         } else if (e instanceof BadRequestException) {
             ErrorDto errorDto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());
             res.setStatus(CODE_BAD_REQUEST);
+            return getString(errorDto);
+        } else if (e instanceof EntityExistsException) {
+            ErrorDto errorDto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());
+            res.setStatus(CODE_CONFLICT);
             return getString(errorDto);
         } else if (e instanceof TransactionException) {
             ErrorDto dto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());

@@ -25,9 +25,13 @@ import ru.clevertec.data.repository.impl.BankRepositoryImpl;
 import ru.clevertec.data.repository.impl.TransactionRepositoryImpl;
 import ru.clevertec.data.repository.impl.UserRepositoryImpl;
 import ru.clevertec.service.AccountService;
+import ru.clevertec.service.BankService;
 import ru.clevertec.service.TransactionService;
+import ru.clevertec.service.UserService;
 import ru.clevertec.service.impl.AccountServiceImpl;
+import ru.clevertec.service.impl.BankServiceImpl;
 import ru.clevertec.service.impl.TransactionServiceImpl;
+import ru.clevertec.service.impl.UserServiceImpl;
 import ru.clevertec.service.util.MoneyUtil;
 import ru.clevertec.service.util.serializer.Serializer;
 import ru.clevertec.service.util.serializer.Writable;
@@ -38,8 +42,16 @@ import ru.clevertec.web.command.impl.account.DeleteAccountCommand;
 import ru.clevertec.web.command.impl.account.GetAccountCommand;
 import ru.clevertec.web.command.impl.account.PostAccountCommand;
 import ru.clevertec.web.command.impl.account.PutAccountCommand;
+import ru.clevertec.web.command.impl.bank.DeleteBankCommand;
+import ru.clevertec.web.command.impl.bank.GetBankCommand;
+import ru.clevertec.web.command.impl.bank.PostBankCommand;
+import ru.clevertec.web.command.impl.bank.PutBankCommand;
 import ru.clevertec.web.command.impl.error.ErrorCommand;
 import ru.clevertec.web.command.impl.transaction.PostTransactionCommand;
+import ru.clevertec.web.command.impl.user.DeleteUserCommand;
+import ru.clevertec.web.command.impl.user.GetUserCommand;
+import ru.clevertec.web.command.impl.user.PostUserCommand;
+import ru.clevertec.web.command.impl.user.PutUserCommand;
 
 public class BeanFactory implements Closeable {
 
@@ -58,6 +70,7 @@ public class BeanFactory implements Closeable {
         ConfigManager configManager = new ConfigManager("/application.yml");
         DataSource dataSource = new DataSource(configManager);
         closeables.add(dataSource);
+
         AccountRepository accountRepository = new AccountRepositoryImpl(dataSource);
         UserRepository userRepository = new UserRepositoryImpl(dataSource);
         BankRepository bankRepository = new BankRepositoryImpl(dataSource);
@@ -92,13 +105,23 @@ public class BeanFactory implements Closeable {
         } else {
             writable = new TXTWriter(destDir);
         }
+        BankService bankService = new BankServiceImpl(bankRepository);
+        UserService userService = new UserServiceImpl(userRepository);
+
         beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper, appSerializable, writable));
         beans.put("accountsDELETE", new DeleteAccountCommand(accountService));
         beans.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
         beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
+        beans.put("banksGET", new GetBankCommand(bankService, objectMapper));
+        beans.put("banksDELETE", new DeleteBankCommand(bankService));
+        beans.put("banksPOST", new PostBankCommand(bankService, objectMapper));
+        beans.put("banksPUT", new PutBankCommand(bankService, objectMapper));
+        beans.put("usersGET", new GetUserCommand(userService, objectMapper));
+        beans.put("usersDELETE", new DeleteUserCommand(userService));
+        beans.put("usersPOST", new PostUserCommand(userService, objectMapper));
+        beans.put("usersPUT", new PutUserCommand(userService, objectMapper));
         beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, appSerializable, writable));
         beans.put("error", new ErrorCommand(objectMapper));
-
     }
 
     public Object getBean(String command) {
