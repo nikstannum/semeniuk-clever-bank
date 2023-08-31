@@ -149,7 +149,7 @@ public class AccountServiceImpl implements AccountService {
         LocalDate dateFrom = createDto.getPeriodFrom();
         Instant instantFrom = dateFrom.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
         LocalDate dateTo = createDto.getPeriodTo();
-        Instant instantTo = dateTo.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+        Instant instantTo = dateTo.plusDays(1).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
         List<Transaction> transactions = transactionRepository.findAllTransactionsForUser(instantFrom, instantTo, id);
         CommonInformationDto commonInformation = getCommonInformation(createDto, account);
         ExtractDto result = new ExtractDto();

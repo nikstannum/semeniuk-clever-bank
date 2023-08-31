@@ -37,7 +37,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             WHERE t.deleted = false
             AND t."time" >= ?
             AND t."time" <= ?
-            AND t.account_id = ? OR t.destination_account_id = ?
+            AND (t.account_id = ? OR t.destination_account_id = ?)
             ORDER BY t."time"
             """;
     private static final String FIND_INCOME_EXPENSE = """
@@ -93,21 +93,11 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         try {
             PreparedStatement statement = connection.prepareStatement(CREATE_TRANSACTION, Statement.RETURN_GENERATED_KEYS);
             Account accountFrom = transaction.getAccountFrom();
-            if (accountFrom == null) {
-                statement.setObject(1, null);
-                statement.setBigDecimal(3, null);
-            } else {
-                statement.setLong(1, accountFrom.getId());
-                statement.setBigDecimal(3, transaction.getAccountAmountFrom());
-            }
+            statement.setObject(1, accountFrom == null ? null : accountFrom.getId());
+            statement.setBigDecimal(3, accountFrom == null ? null : transaction.getAccountAmountFrom());
             Account accountTo = transaction.getAccountTo();
-            if (accountTo == null) {
-                statement.setObject(2, null);
-                statement.setBigDecimal(4, null);
-            } else {
-                statement.setLong(2, accountTo.getId());
-                statement.setBigDecimal(4, transaction.getAccountAmountTo());
-            }
+            statement.setObject(2, accountTo == null ? null : accountTo.getId());
+            statement.setBigDecimal(4, accountTo == null ? null : transaction.getAccountAmountTo());
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
             while (keys.next()) {
