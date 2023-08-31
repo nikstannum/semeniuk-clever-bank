@@ -32,6 +32,13 @@ public class TransactionServiceImpl implements TransactionService {
     private final DbTransactionManager dbTransactionManager;
     private final MoneyUtil moneyUtil;
 
+    /**
+     * Method for making a transaction between two users
+     *
+     * @param data for the operation
+     * @return the result of the transaction with a description of the accounts, the amount in the currency of the sender's account,
+     * the time of the transaction, etc.
+     */
     @Override
     @Loggable
     public ReceiptDto transfer(TransactionDto data) {
@@ -50,6 +57,12 @@ public class TransactionServiceImpl implements TransactionService {
         return prepareReceipt(transaction);
     }
 
+    /**
+     * Method that implements the logic of replenishing an account with cash
+     *
+     * @param data for the operation
+     * @return The result of the transaction indicating the account number, currency amounts, etc.
+     */
     @Override
     @Loggable
     public ReceiptDto topUp(TransactionDto data) {
@@ -64,6 +77,12 @@ public class TransactionServiceImpl implements TransactionService {
         return prepareReceipt(transaction);
     }
 
+    /**
+     * The method that implements the logic of withdrawing cash from the account.
+     *
+     * @param data for the operation
+     * @return The result of the transaction indicating the account number, currency amounts, etc.
+     */
     @Override
     @Loggable
     public ReceiptDto withdraw(TransactionDto data) {

@@ -15,6 +15,7 @@ import ru.clevertec.service.util.serializer.Serializer;
 
 public class StringSerializer implements Serializer {
 
+    public static final String EXTRACT = "Account statement";
     private static final int FIELD_WIDTH_FOR_CHECK = 45;
     private static final int STRING_LENGTH_FOR_CHECK = 43;
     private static final int FIELD_WIDTH_FOR_EXTRACT = 63;
@@ -38,7 +39,6 @@ public class StringSerializer implements Serializer {
     private static final String SENDER_S_ACCOUNT = "Sender:";
     private static final String BENEFICIARY_S_ACCOUNT = "Benef.:";
     private static final String AMOUNT = "Amount:";
-    public static final String EXTRACT = "Account statement";
 
     @Override
     public String serialize(ReceiptDto dto) {
@@ -134,15 +134,12 @@ public class StringSerializer implements Serializer {
         String checkNum = clientStr
                 + StringUtils.rightPad(VERT_LINE_START + dto.getClientFullName(), RIGHT_FIELD_FOR_COMMON_INF) + "\n";
         String accountStr = StringUtils.rightPad("Account", LEFT_FIELD_WIDTH_FOR_COMMON_INFT);
-        ;
         String accountNum = accountStr
                 + StringUtils.rightPad(VERT_LINE_START + dto.getAccountNumber(), RIGHT_FIELD_FOR_COMMON_INF) + "\n";
         String currencyStr = StringUtils.rightPad("Currency", LEFT_FIELD_WIDTH_FOR_COMMON_INFT);
-        ;
         String currency = currencyStr
                 + StringUtils.rightPad(VERT_LINE_START + dto.getCurrency(), RIGHT_FIELD_FOR_COMMON_INF) + "\n";
         String openDateStr = StringUtils.rightPad("Open date", LEFT_FIELD_WIDTH_FOR_COMMON_INFT);
-        ;
         DateTimeFormatter standardFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         String opened = dto.getOpenTime().format(standardFormatter);
         String openDate = openDateStr
@@ -157,7 +154,6 @@ public class StringSerializer implements Serializer {
         String formation = formationStr
                 + StringUtils.rightPad(VERT_LINE_START + formationFormatted, RIGHT_FIELD_FOR_COMMON_INF) + "\n";
         String balanceStr = StringUtils.rightPad("Balance", LEFT_FIELD_WIDTH_FOR_COMMON_INFT);
-        ;
         String preparedBalance = dto.getBalance() + " " + dto.getCurrency();
         String balance = balanceStr
                 + StringUtils.rightPad(VERT_LINE_START + preparedBalance, RIGHT_FIELD_FOR_COMMON_INF) + "\n";

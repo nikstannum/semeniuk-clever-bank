@@ -233,29 +233,6 @@ public class AccountServiceImpl implements AccountService {
         list.add(formattedDate);
     }
 
-    private Account toEntity(AccountDto dto) {
-        Account account = new Account();
-        account.setId(dto.getId());
-        account.setNumber(dto.getNumber());
-        account.setAmount(dto.getAmount());
-        account.setCurrency(dto.getCurrency());
-        account.setOpenTime(dto.getOpenTime());
-        BankDto bankDto = dto.getBank();
-        Bank bank = new Bank();
-        bank.setId(bankDto.getId());
-        bank.setName(bankDto.getName());
-        bank.setBankIdentifier(bankDto.getBankIdentifier());
-        account.setBank(bank);
-        UserDto userDto = dto.getUser();
-        User user = new User();
-        user.setId(userDto.getId());
-        user.setFirstName(userDto.getFirstName());
-        user.setLastName(user.getLastName());
-        user.setEmail(user.getEmail());
-        account.setUser(user);
-        return account;
-    }
-
     private AccountDto toDto(Account account) {
         AccountDto dto = new AccountDto();
         dto.setId(account.getId());

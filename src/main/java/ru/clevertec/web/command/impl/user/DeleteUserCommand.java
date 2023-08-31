@@ -8,8 +8,8 @@ import ru.clevertec.web.command.Command;
 
 @RequiredArgsConstructor
 public class DeleteUserCommand implements Command {
-    private final UserService service;
     private static final String URI_DIVIDER = "/";
+    private final UserService service;
 
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {

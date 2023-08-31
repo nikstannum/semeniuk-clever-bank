@@ -9,8 +9,8 @@ import ru.clevertec.web.command.Command;
 @RequiredArgsConstructor
 public class DeleteBankCommand implements Command {
 
-    private final BankService bankService;
     private static final String URI_DIVIDER = "/";
+    private final BankService bankService;
 
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {

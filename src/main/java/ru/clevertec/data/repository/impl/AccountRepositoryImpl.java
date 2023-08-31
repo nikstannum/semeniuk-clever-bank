@@ -55,11 +55,6 @@ public class AccountRepositoryImpl implements AccountRepository {
             SET deleted = true
             WHERE id = ?
             """;
-    private static final String DELETE_BY_NUMBER = """
-            UPDATE accounts
-            SET deleted = true
-            WHERE "number" = ?
-            """;
     private static final String CREATE_ACCOUNT = """
             INSERT INTO accounts(user_id, bank_id, amount, currency_id)
             VALUES
@@ -90,11 +85,6 @@ public class AccountRepositoryImpl implements AccountRepository {
             SET amount = ?
             WHERE "number" = ?
             """;
-    private static final String INCREASE_AMOUNT_BY_ID = """
-            UPDATE accounts
-            SET amount = ?
-            WHERE id = ?
-            """;
 
     private static final String FIND_ALL_AMOUNT_MORE_ZERO = """
             SELECT a.id, a."number", a.amount, a.open_time
@@ -108,7 +98,6 @@ public class AccountRepositoryImpl implements AccountRepository {
     private static final String COLUMN_NUMBER = "number";
     private static final String COLUMN_AMOUNT = "amount";
     private static final String COLUMN_OPEN_TIME = "open_time";
-    private static final String ERROR_CALCULATING_INTEREST_FOR_ACCOUNT = "Error calculating interest for account ID = %d. Updated %d rows";
     private static final String COLUMN_TOTAL = "total";
     private static final String COLUMN_USER_ID = "user_id";
     private static final String COLUMN_FIRST_NAME = "first_name";
@@ -145,21 +134,6 @@ public class AccountRepositoryImpl implements AccountRepository {
         account.setAmount(resultSet.getBigDecimal(COLUMN_AMOUNT));
         account.setOpenTime(resultSet.getDate(COLUMN_OPEN_TIME).toLocalDate());
         return account;
-    }
-
-    @Override
-    public void increaseAmountById(Account account, Connection connection) {
-        try {
-            PreparedStatement statement = connection.prepareStatement(INCREASE_AMOUNT_BY_ID);
-            statement.setBigDecimal(1, account.getAmount());
-            statement.setLong(2, account.getId());
-            int rowUpd = statement.executeUpdate();
-            if (rowUpd != 1) {
-                throw new RuntimeException(String.format(ERROR_CALCULATING_INTEREST_FOR_ACCOUNT, account.getId(), rowUpd));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -291,17 +265,6 @@ public class AccountRepositoryImpl implements AccountRepository {
         try (Connection connection = dataSource.getFreeConnections();
              PreparedStatement statement = connection.prepareStatement(DELETE_BY_ID)) {
             statement.setLong(1, id);
-            statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void deleteByNumber(String number) {
-        try (Connection connection = dataSource.getFreeConnections();
-             PreparedStatement statement = connection.prepareStatement(DELETE_BY_NUMBER)) {
-            statement.setString(1, number);
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);

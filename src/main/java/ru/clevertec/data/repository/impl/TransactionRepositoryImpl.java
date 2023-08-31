@@ -19,13 +19,30 @@ import ru.clevertec.data.entity.Transaction;
 import ru.clevertec.data.entity.User;
 import ru.clevertec.data.repository.TransactionRepository;
 
+/**
+ * Transaction serialization repository.
+ * It is assumed that there are two types of transactions - income and expenditure.
+ * Based on this, it is determined that if there is a sender and a recipient, such a transaction is called a transfer of funds.
+ * In the absence of a recipient and the presence of a sender, the transaction is called a withdrawal of funds from the current account.
+ * In the absence of the sender and the presence of the recipient, the transaction is called the replenishment of the current account.
+ */
 @RequiredArgsConstructor
 public class TransactionRepositoryImpl implements TransactionRepository {
+
+    /**
+     * A query allows you to serialize a transaction to a database. It is assumed that the identifier of the account of the sender of funds
+     * is account_id, the identifier of the recipient's account is destination_account_id.
+     * The size of the transaction amount is indicated taking into account the exchange rate differences in the currencies
+     * of the accounts involved in the transaction.
+     */
     private static final String CREATE_TRANSACTION = """
             INSERT INTO transactions (account_id, destination_account_id, account_amount, destination_account_amount)
             VALUES
             (?, ?, ?, ?)
             """;
+    /**
+     * The query allows you to get transactions in which the account acted as a sender or as a recipient of funds.
+     */
     private static final String FIND_ALL_TRANSACTION_FOR_USER = """
             SELECT t.id, t.account_id, t.destination_account_id, t.account_amount, t.destination_account_amount, t."time",
             u1.last_name AS user_from, u2.last_name AS user_to
@@ -40,6 +57,9 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             AND (t.account_id = ? OR t.destination_account_id = ?)
             ORDER BY t."time"
             """;
+    /**
+     * The query allows you to get the amount of incoming and outgoing transactions for the specified period.
+     */
     private static final String FIND_INCOME_EXPENSE = """
             SELECT
                 (SELECT COALESCE(SUM(account_amount), 0)
@@ -122,7 +142,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
             statement.setLong(4, id);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                list.add(processTransactionsForUser(resultSet));
+                list.add(processTransaction(resultSet));
             }
             return list;
         } catch (SQLException e) {
@@ -130,7 +150,7 @@ public class TransactionRepositoryImpl implements TransactionRepository {
         }
     }
 
-    private Transaction processTransactionsForUser(ResultSet rs) throws SQLException {
+    private Transaction processTransaction(ResultSet rs) throws SQLException {
         Transaction transaction = new Transaction();
         transaction.setId(rs.getLong(COLUMN_ID));
         transaction.setAccountAmountFrom(rs.getBigDecimal(COLUMN_ACCOUNT_AMOUNT));
