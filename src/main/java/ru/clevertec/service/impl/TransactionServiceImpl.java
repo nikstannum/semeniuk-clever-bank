@@ -9,6 +9,7 @@ import ru.clevertec.data.entity.Currency;
 import ru.clevertec.data.entity.Transaction;
 import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.data.repository.TransactionRepository;
+import ru.clevertec.logging.Loggable;
 import ru.clevertec.service.TransactionService;
 import ru.clevertec.service.dto.ReceiptDto;
 import ru.clevertec.service.dto.TransactionDto;
@@ -32,6 +33,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final MoneyUtil moneyUtil;
 
     @Override
+    @Loggable
     public ReceiptDto transfer(TransactionDto data) {
         Account accountFrom = accountRepository.findByNumber(data.getFromNumber())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + data.getFromNumber()));
@@ -49,6 +51,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Loggable
     public ReceiptDto topUp(TransactionDto data) {
         Account accountTo = accountRepository.findByNumber(data.getToNumber())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_RECIPIENT_NUMBER + data.getToNumber()));
@@ -62,6 +65,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
+    @Loggable
     public ReceiptDto withdraw(TransactionDto data) {
         Account accountFrom = accountRepository.findByNumber(data.getFromNumber())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_NUMBER + data.getFromNumber()));

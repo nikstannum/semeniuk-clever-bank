@@ -20,6 +20,7 @@ import ru.clevertec.data.repository.AccountRepository;
 import ru.clevertec.data.repository.BankRepository;
 import ru.clevertec.data.repository.TransactionRepository;
 import ru.clevertec.data.repository.UserRepository;
+import ru.clevertec.logging.Loggable;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.dto.AccountCreateDto;
 import ru.clevertec.service.dto.AccountDto;
@@ -58,6 +59,7 @@ public class AccountServiceImpl implements AccountService {
     private final BigDecimal percent;
 
     @Override
+    @Loggable
     public void accrueInterest() {
         dbTransactionManager.execute(connection -> {
                     Long count = accountRepository.countAccountWithAmountMoreZero(connection);
@@ -88,6 +90,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public AccountDto getById(Long id) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_ID + id));
@@ -95,6 +98,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public List<AccountDto> getAll(Paging paging) {
         return accountRepository.findAll(paging.getLimit(), paging.getOffset()).stream()
                 .map(this::toDto)
@@ -102,11 +106,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public void delete(Long id) {
         accountRepository.deleteById(id);
     }
 
     @Override
+    @Loggable
     public AccountDto update(AccountUpdateDto dto) {
         Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_BANK_BY_IDENTIFIER));
@@ -119,6 +125,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public AccountDto create(AccountCreateDto dto) {
         User user = userRepository.findUserByEmail(dto.getEmail())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_USER_REGISTRATION_REQUIRED));
@@ -133,6 +140,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public ExtractDto getExtract(ExtractStatementCreateDto createDto) {
         String number = createDto.getAccountNumber();
         Account account = accountRepository.findByNumber(number)
@@ -152,6 +160,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Loggable
     public StatementDto getMoneyStatement(ExtractStatementCreateDto createDto) {
         String number = createDto.getAccountNumber();
         Account account = accountRepository.findByNumber(number)
