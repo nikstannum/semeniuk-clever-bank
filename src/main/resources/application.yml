@@ -15,4 +15,4 @@ interest:
 check:
   font-path: resources/fonts/tt2020-ascii.ttf
   destination-dir: check
-  format: pdf
+  format: txt

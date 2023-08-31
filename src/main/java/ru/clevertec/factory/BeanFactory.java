@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import ru.clevertec.data.DbTransactionManager;
 import ru.clevertec.data.DbTransactionManagerImpl;
 import ru.clevertec.data.connection.ConfigManager;
@@ -24,7 +27,6 @@ import ru.clevertec.data.repository.impl.UserRepositoryImpl;
 import ru.clevertec.service.AccountService;
 import ru.clevertec.service.TransactionService;
 import ru.clevertec.service.impl.AccountServiceImpl;
-import ru.clevertec.service.impl.InterestServiceImpl;
 import ru.clevertec.service.impl.TransactionServiceImpl;
 import ru.clevertec.service.util.MoneyUtil;
 import ru.clevertec.service.util.serializer.Serializer;
@@ -44,6 +46,7 @@ public class BeanFactory implements Closeable {
     public final static BeanFactory INSTANCE = new BeanFactory();
     private final Map<String, Object> beans;
     private final List<Closeable> closeables;
+    private ScheduledExecutorService executorService;
 
     private BeanFactory() {
         closeables = new ArrayList<>();
@@ -74,9 +77,9 @@ public class BeanFactory implements Closeable {
                 dbTransactionManager, percent);
         TransactionService transactionService = new TransactionServiceImpl(transactionRepository, accountRepository, dbTransactionManager, moneyUtil);
         BigDecimal periodStr = new BigDecimal(String.valueOf(interestProps.get("periodicity")));
-        Long periodicity = periodStr.longValue();
-        InterestServiceImpl accrualService = new InterestServiceImpl(accountService, periodicity);
-        closeables.add(accrualService);
+        long periodicity = periodStr.longValue();
+        executorService = Executors.newSingleThreadScheduledExecutor();
+        executorService.scheduleAtFixedRate(accountService::accrueInterest, 0, periodicity, TimeUnit.SECONDS);
         Serializer appSerializable = new StringSerializer();
         @SuppressWarnings("unchecked")
         Map<String, String> checkProps = (Map<String, String>) configManager.getProperty("check");
@@ -94,7 +97,6 @@ public class BeanFactory implements Closeable {
         beans.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
         beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
         beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, appSerializable, writable));
-        beans.put("accrualService", accrualService);
         beans.put("error", new ErrorCommand(objectMapper));
 
     }
@@ -109,11 +111,12 @@ public class BeanFactory implements Closeable {
 
     @Override
     public void close() {
+        executorService.shutdown();
         for (Closeable closeable : closeables) {
             try {
                 closeable.close();
             } catch (IOException e) {
-                // FIXME add logging
+                throw new RuntimeException(e);
             }
         }
     }
