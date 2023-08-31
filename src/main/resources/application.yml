@@ -11,7 +11,7 @@ exchange-rates:
   BYN: 0.3185
 interest:
   percent: 1
-  periodicity: 50000
+  periodicity: 30
 check:
   font-path: resources/fonts/tt2020-ascii.ttf
   destination-dir: check

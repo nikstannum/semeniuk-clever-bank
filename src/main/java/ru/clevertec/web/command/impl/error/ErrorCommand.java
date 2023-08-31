@@ -6,6 +6,7 @@ import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import ru.clevertec.service.dto.ErrorDto;
 import ru.clevertec.service.exception.BadRequestException;
 import ru.clevertec.service.exception.EntityExistsException;
@@ -13,6 +14,7 @@ import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.service.exception.TransactionException;
 import ru.clevertec.web.command.Command;
 
+@Log4j2
 @RequiredArgsConstructor
 public class ErrorCommand implements Command {
 
@@ -29,6 +31,7 @@ public class ErrorCommand implements Command {
     @Override
     public String execute(HttpServletRequest req, HttpServletResponse res) {
         Throwable e = (Throwable) req.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
+        log.error(e);
         res.setContentType(CONTENT_TYPE_APP_JSON);
         if (e instanceof NotFoundException) {
             ErrorDto errorDto = new ErrorDto(MSG_CLIENT_ERROR, e.getMessage());
