@@ -3,6 +3,9 @@ package ru.clevertec.web.util;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
 
+/**
+ * Util class for converting the page and page size into a dataset for the SQL query
+ */
 public class PagingUtil {
 
     private static final String PAGE = "page";

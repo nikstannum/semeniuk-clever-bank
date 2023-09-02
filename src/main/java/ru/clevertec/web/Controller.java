@@ -8,6 +8,9 @@ import java.io.IOException;
 import ru.clevertec.factory.BeanFactory;
 import ru.clevertec.web.command.Command;
 
+/**
+ * Front controller for application
+ */
 @WebServlet("/")
 public class Controller extends HttpServlet {
 
@@ -21,11 +24,6 @@ public class Controller extends HttpServlet {
     private static final int CODE_CREATED = 201;
     private static final int CODE_NO_CONTENT = 204;
 
-    private Command getCommand(String command) {
-        BeanFactory factory = BeanFactory.INSTANCE;
-        return (Command) factory.getBean(command);
-    }
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         String uri = req.getRequestURI().substring(1);
@@ -34,12 +32,6 @@ public class Controller extends HttpServlet {
         Command instance = getCommand(command);
         String result = instance.execute(req, resp);
         sendResponse(resp, CODE_OK, result);
-    }
-
-    private void sendResponse(HttpServletResponse resp, int sc, String result) throws IOException {
-        resp.setStatus(sc);
-        resp.setContentType(CONTENT_TYPE_APP_JSON);
-        resp.getWriter().print(result);
     }
 
     @Override
@@ -68,5 +60,16 @@ public class Controller extends HttpServlet {
         Command instance = getCommand(command);
         instance.execute(req, resp);
         resp.setStatus(CODE_NO_CONTENT);
+    }
+
+    private Command getCommand(String command) {
+        BeanFactory factory = BeanFactory.INSTANCE;
+        return (Command) factory.getBean(command);
+    }
+
+    private void sendResponse(HttpServletResponse resp, int sc, String result) throws IOException {
+        resp.setStatus(sc);
+        resp.setContentType(CONTENT_TYPE_APP_JSON);
+        resp.getWriter().print(result);
     }
 }
