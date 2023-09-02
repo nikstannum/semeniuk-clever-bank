@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration status="ERROR" monitorInterval="1">
+    <Properties>
+        <property name="pattern_file">
+            %d{dd-MM-yyyy HH:mm:ss} %-5level %logger{3} - %msg. Method %M%n
+        </property>
+    </Properties>
+    <Appenders>
+        <RollingFile name="TxtFile" fileName="logs/log.txt" filePattern="${date:dd-MM-yyyy}/%d{mm-HH}_%i.txt"
+                     append="true" bufferedIO="true" bufferSize="1024">
+            <PatternLayout pattern="${pattern_file}"/>
+            <Policies>
+                <SizeBasedTriggeringPolicy size="10 KB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="TxtFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

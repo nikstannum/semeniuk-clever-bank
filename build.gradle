@@ -1,9 +1,12 @@
 plugins {
     id 'java'
+    id 'war'
+    id 'io.freefair.aspectj.post-compile-weaving' version '8.3'
 }
 
 group = 'ru.clevertec'
 version = '1.0-SNAPSHOT'
+
 
 repositories {
     mavenCentral()
@@ -11,9 +14,39 @@ repositories {
 
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.9.1')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.5.0'
+    testImplementation 'org.mockito:mockito-core:5.5.0'
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+
+    runtimeOnly 'org.postgresql:postgresql:42.6.0'
+    implementation 'org.liquibase:liquibase-core:4.23.1'
+
+    compileOnly 'org.projectlombok:lombok:1.18.28'
+    annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+    implementation 'org.yaml:snakeyaml:2.1'
+
+    compileOnly 'jakarta.servlet:jakarta.servlet-api:6.0.0'
+
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
+    implementation 'org.apache.pdfbox:pdfbox:3.0.0'
+
+    implementation 'org.apache.commons:commons-lang3:3.13.0'
+
+    implementation 'org.aspectj:aspectjrt:1.9.20'
+
+    implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
 }
 
 test {
     useJUnitPlatform()
+}
+
+war {
+    archiveFileName = 'clever-bank.war'
+    final String targetDir = System.getenv('TOMCAT_HOME')
+    destinationDirectory = file("${targetDir}/webapps")
 }
