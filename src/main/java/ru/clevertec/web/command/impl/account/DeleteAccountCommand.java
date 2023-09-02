@@ -15,7 +15,7 @@ public class DeleteAccountCommand implements Command {
     public String execute(HttpServletRequest req, HttpServletResponse res) {
         String uri = req.getRequestURI().substring(1);
         Long id = Long.parseLong(uri.split(URI_DIVIDER)[1]);
-        service.delete(id);
+        service.deleteById(id);
         return null;
     }
 }

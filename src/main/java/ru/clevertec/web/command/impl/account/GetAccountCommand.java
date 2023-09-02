@@ -85,7 +85,7 @@ public class GetAccountCommand implements Command {
     }
 
     private String processAll(Paging paging) throws JsonProcessingException {
-        List<AccountDto> list = accountService.getAll(paging);
+        List<AccountDto> list = accountService.findAll(paging);
         return objectMapper.writeValueAsString(list);
     }
 
@@ -96,7 +96,7 @@ public class GetAccountCommand implements Command {
         } catch (NumberFormatException e) {
             throw new BadRequestException(EXC_MSG_BAD_REQUEST);
         }
-        AccountDto dto = accountService.getById(id);
+        AccountDto dto = accountService.findById(id);
         return objectMapper.writeValueAsString(dto);
     }
 

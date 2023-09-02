@@ -25,7 +25,6 @@ public class TransactionServiceImpl implements TransactionService {
     private static final String TRANSACTION_TRANSFER = "transfer";
     private static final String TRANSACTION_TOP_UP = "top up";
     private static final String TRANSACTION_WITHDRAWAL = "withdrawal";
-    private static final String UNKNOWN_TRANSACTION = "Unknown transaction";
     private static final String EXC_MSG_NOT_ENOUGH_FUNDS_IN_THE_ACCOUNT = "Not enough funds in the account";
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
@@ -49,7 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
         Money transactionMoney = getTransactionMoney(data);
         Transaction transaction = prepareTransaction(accountFrom, transactionMoney, accountTo);
         dbTransactionManager.execute(connection -> {
-            validateOperation(accountFrom, data);
+            validateOperation(accountFrom, transaction.getAccountAmountFrom());
             accountRepository.updateAmountByNumber(accountFrom, connection);
             accountRepository.updateAmountByNumber(accountTo, connection);
             transactionRepository.createTransaction(transaction, connection);
@@ -91,7 +90,7 @@ public class TransactionServiceImpl implements TransactionService {
         Money transactionMoney = getTransactionMoney(data);
         Transaction transaction = prepareTransaction(accountFrom, transactionMoney, null);
         dbTransactionManager.execute(connection -> {
-            validateOperation(accountFrom, data);
+            validateOperation(accountFrom, transaction.getAccountAmountFrom());
             accountRepository.updateAmountByNumber(accountFrom, connection);
             transactionRepository.createTransaction(transaction, connection);
         });
@@ -132,6 +131,8 @@ public class TransactionServiceImpl implements TransactionService {
         Account accountFrom = created.getAccountFrom();
         Account accountTo = created.getAccountTo();
         String transactionType;
+        boolean expected = !(accountFrom == null && accountTo == null);
+        assert expected;
         if (accountFrom != null && accountTo != null) {
             transactionType = TRANSACTION_TRANSFER;
             receipt.setCurrency(accountFrom.getCurrency());
@@ -140,27 +141,24 @@ public class TransactionServiceImpl implements TransactionService {
             receipt.setBankRecipient(accountTo.getBank().getName());
             receipt.setSenderNumberAccount(accountFrom.getNumber());
             receipt.setRecipientNumberAccount(accountTo.getNumber());
-        } else if (accountFrom == null && accountTo != null) {
+        } else if (accountFrom == null) {
             transactionType = TRANSACTION_TOP_UP;
             receipt.setCurrency(accountTo.getCurrency());
             receipt.setAmount(created.getAccountAmountTo());
             receipt.setBankRecipient(accountTo.getBank().getName());
             receipt.setRecipientNumberAccount(accountTo.getNumber());
-        } else if (accountFrom != null) {
+        } else {
             transactionType = TRANSACTION_WITHDRAWAL;
             receipt.setCurrency(accountFrom.getCurrency());
             receipt.setAmount(created.getAccountAmountFrom());
             receipt.setBankSender(accountFrom.getBank().getName());
             receipt.setSenderNumberAccount(accountFrom.getNumber());
-        } else {
-            throw new RuntimeException(UNKNOWN_TRANSACTION);
         }
         receipt.setTransactionType(transactionType);
         return receipt;
     }
 
-    private void validateOperation(Account accountFrom, TransactionDto data) {
-        BigDecimal paymentAmount = data.getAmount();
+    private void validateOperation(Account accountFrom, BigDecimal paymentAmount) {
         BigDecimal accountFromAmountSize = accountFrom.getAmount();
         if (paymentAmount.compareTo(accountFromAmountSize) > 0) {
             throw new TransactionException(EXC_MSG_NOT_ENOUGH_FUNDS_IN_THE_ACCOUNT);

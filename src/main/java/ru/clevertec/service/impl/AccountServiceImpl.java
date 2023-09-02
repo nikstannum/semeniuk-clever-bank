@@ -91,7 +91,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Loggable
-    public AccountDto getById(Long id) {
+    public AccountDto findById(Long id) {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_ACCOUNT_BY_ID + id));
         return toDto(account);
@@ -99,7 +99,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Loggable
-    public List<AccountDto> getAll(Paging paging) {
+    public List<AccountDto> findAll(Paging paging) {
         return accountRepository.findAll(paging.getLimit(), paging.getOffset()).stream()
                 .map(this::toDto)
                 .toList();
@@ -107,7 +107,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Loggable
-    public void delete(Long id) {
+    public void deleteById(Long id) {
         accountRepository.deleteById(id);
     }
 
@@ -116,8 +116,8 @@ public class AccountServiceImpl implements AccountService {
     public AccountDto update(AccountUpdateDto dto) {
         Bank bank = bankRepository.findByIdentifier(dto.getBankIdentifier())
                 .orElseThrow(() -> new NotFoundException(EXC_MSG_NOT_FOUND_BANK_BY_IDENTIFIER));
-        Account account = new Account();
-        account.setId(dto.getId());
+        Account account = accountRepository.findById(dto.getId())
+                .orElseThrow(() -> new NotFoundException("wasn't found account with id = " + dto.getId()));
         account.setBank(bank);
         account.setAmount(dto.getAmount());
         Account updated = accountRepository.update(account);
@@ -134,6 +134,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = new Account();
         account.setUser(user);
         account.setBank(bank);
+        account.setAmount(BigDecimal.ZERO);
         account.setCurrency(dto.getCurrency());
         Account created = accountRepository.create(account);
         return toDto(created);

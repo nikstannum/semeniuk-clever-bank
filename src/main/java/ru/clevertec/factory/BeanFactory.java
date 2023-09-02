@@ -58,7 +58,7 @@ public class BeanFactory implements Closeable {
     public final static BeanFactory INSTANCE = new BeanFactory();
     private final Map<String, Object> beans;
     private final List<Closeable> closeables;
-    private ScheduledExecutorService executorService;
+    private final ScheduledExecutorService executorService;
 
     private BeanFactory() {
         closeables = new ArrayList<>();
@@ -75,7 +75,6 @@ public class BeanFactory implements Closeable {
         UserRepository userRepository = new UserRepositoryImpl(dataSource);
         BankRepository bankRepository = new BankRepositoryImpl(dataSource);
         TransactionRepository transactionRepository = new TransactionRepositoryImpl(dataSource);
-        DbTransactionManager dbTransactionManager = new DbTransactionManagerImpl(dataSource);
 
         // utils
         @SuppressWarnings("unchecked")
@@ -83,6 +82,7 @@ public class BeanFactory implements Closeable {
         MoneyUtil moneyUtil = new MoneyUtil(ratesProps);
 
         // service
+        DbTransactionManager dbTransactionManager = new DbTransactionManagerImpl(dataSource);
         @SuppressWarnings("unchecked")
         Map<String, BigDecimal> interestProps = (Map<String, BigDecimal>) configManager.getProperty("interest");
         BigDecimal percent = new BigDecimal(String.valueOf(interestProps.get("percent")));
@@ -93,7 +93,7 @@ public class BeanFactory implements Closeable {
         long periodicity = periodStr.longValue();
         executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleAtFixedRate(accountService::accrueInterest, 0, periodicity, TimeUnit.SECONDS);
-        Serializer appSerializable = new StringSerializer();
+        Serializer serializer = new StringSerializer();
         @SuppressWarnings("unchecked")
         Map<String, String> checkProps = (Map<String, String>) configManager.getProperty("check");
         String fontPath = checkProps.get("font-path");
@@ -108,7 +108,8 @@ public class BeanFactory implements Closeable {
         BankService bankService = new BankServiceImpl(bankRepository);
         UserService userService = new UserServiceImpl(userRepository);
 
-        beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper, appSerializable, writable));
+        // web
+        beans.put("accountsGET", new GetAccountCommand(accountService, objectMapper, serializer, writable));
         beans.put("accountsDELETE", new DeleteAccountCommand(accountService));
         beans.put("accountsPOST", new PostAccountCommand(accountService, objectMapper));
         beans.put("accountsPUT", new PutAccountCommand(accountService, objectMapper));
@@ -120,8 +121,15 @@ public class BeanFactory implements Closeable {
         beans.put("usersDELETE", new DeleteUserCommand(userService));
         beans.put("usersPOST", new PostUserCommand(userService, objectMapper));
         beans.put("usersPUT", new PutUserCommand(userService, objectMapper));
-        beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, appSerializable, writable));
+        beans.put("transactionsPOST", new PostTransactionCommand(transactionService, objectMapper, serializer, writable));
         beans.put("error", new ErrorCommand(objectMapper));
+
+        // tests
+        beans.put("userService", userService);
+        beans.put("accountService", accountService);
+        beans.put("bankService", bankService);
+        beans.put("transactionService", transactionService);
+        beans.put("dataSource", dataSource);
     }
 
     public Object getBean(String command) {

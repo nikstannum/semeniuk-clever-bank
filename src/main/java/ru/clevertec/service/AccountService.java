@@ -13,13 +13,13 @@ public interface AccountService {
 
     AccountDto create(AccountCreateDto dto);
 
-    AccountDto getById(Long id);
+    AccountDto findById(Long id);
 
-    List<AccountDto> getAll(Paging paging);
+    List<AccountDto> findAll(Paging paging);
 
     AccountDto update(AccountUpdateDto dto);
 
-    void delete(Long id);
+    void deleteById(Long id);
 
     ExtractDto getExtract(ExtractStatementCreateDto createDto);
 

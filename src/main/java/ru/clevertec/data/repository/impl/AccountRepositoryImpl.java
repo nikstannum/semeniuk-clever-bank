@@ -60,7 +60,7 @@ public class AccountRepositoryImpl implements AccountRepository {
             VALUES
             ((SELECT id FROM users u WHERE u.email = ? AND u.deleted = false),
             (SELECT id FROM banks b WHERE b.bank_identifier = ? AND b.deleted = false),
-            0,
+            ?,
             (SELECT id FROM currencies WHERE name = ?))
             """;
     private static final String UPDATE_ACCOUNT_BY_ID = """
@@ -181,7 +181,8 @@ public class AccountRepositoryImpl implements AccountRepository {
              PreparedStatement statement = connection.prepareStatement(CREATE_ACCOUNT, Statement.RETURN_GENERATED_KEYS)) {
             statement.setString(1, entity.getUser().getEmail());
             statement.setString(2, entity.getBank().getBankIdentifier());
-            statement.setString(3, entity.getCurrency().toString());
+            statement.setBigDecimal(3, entity.getAmount());
+            statement.setString(4, entity.getCurrency().toString());
             statement.executeUpdate();
             ResultSet keys = statement.getGeneratedKeys();
             keys.next();

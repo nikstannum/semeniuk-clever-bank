@@ -13,6 +13,7 @@ import ru.clevertec.service.exception.EntityExistsException;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.web.util.PagingUtil.Paging;
 
+
 @RequiredArgsConstructor
 public class BankServiceImpl implements BankService {
     private final BankRepository bankRepository;
@@ -46,18 +47,12 @@ public class BankServiceImpl implements BankService {
         return bank;
     }
 
-    private Bank toEntity(BankUpdateDto dto) {
-        Bank bank = new Bank();
-        bank.setName(dto.getName());
-        bank.setBankIdentifier(dto.getBankIdentifier());
-        bank.setDeleted(false);
-        return bank;
-    }
-
     @Override
     public BankDto create(BankCreateDto dto) {
         bankRepository.findByIdentifier(dto.getBankIdentifier())
-                .orElseThrow(() -> new EntityExistsException("Already exists bank with identifier " + dto.getBankIdentifier()));
+                .ifPresent(b -> {
+                    throw new EntityExistsException("Already exists bank with identifier " + dto.getBankIdentifier());
+                });
         Bank created = bankRepository.create(toEntity(dto));
         return toDto(created);
     }
