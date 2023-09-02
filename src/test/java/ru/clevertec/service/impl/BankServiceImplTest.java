@@ -25,6 +25,8 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class BankServiceImplTest {
+    @Captor
+    ArgumentCaptor<Long> captor;
     @Mock
     private BankRepositoryImpl repository;
     @InjectMocks
@@ -132,9 +134,6 @@ class BankServiceImplTest {
         BankDto actual = service.update(dto);
         assertThat(actual.getBankIdentifier()).isEqualTo("BLRB");
     }
-
-    @Captor
-    ArgumentCaptor<Long> captor;
 
     @Test
     void checkDeleteByIdShouldCaptured() {

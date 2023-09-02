@@ -42,6 +42,8 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceImplTest {
+    @Captor
+    ArgumentCaptor<Long> captor;
     @Mock
     private AccountRepositoryImpl accountRepository;
     @Mock
@@ -52,7 +54,6 @@ class AccountServiceImplTest {
     private TransactionRepositoryImpl transactionRepository;
     @InjectMocks
     private AccountServiceImpl service;
-
 
     @Test
     void accrueInterest() {
@@ -111,9 +112,6 @@ class AccountServiceImplTest {
         List<AccountDto> actualList = service.findAll(paging);
         assertThat(actualList).hasSize(2);
     }
-
-    @Captor
-    ArgumentCaptor<Long> captor;
 
     @Test
     void deleteById() {

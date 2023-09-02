@@ -13,11 +13,11 @@ import ru.clevertec.service.dto.TransactionDto;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.service.exception.TransactionException;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TransactionServiceImplIntegrationTest {
-    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
     private static TransactionService service;
+    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
 
     @BeforeAll
     static void beforeAll() {

@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AccountServiceImplIntegrationTest {
-    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
     private static AccountService service;
+    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
 
     @BeforeAll
     static void beforeAll() {

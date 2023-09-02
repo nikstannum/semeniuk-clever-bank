@@ -19,11 +19,14 @@ import ru.clevertec.service.exception.EntityExistsException;
 import ru.clevertec.service.exception.NotFoundException;
 import ru.clevertec.web.util.PagingUtil.Paging;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
+    @Captor
+    ArgumentCaptor<Long> captor;
     @Mock
     private UserRepositoryImpl repository;
     @InjectMocks
@@ -35,7 +38,7 @@ class UserServiceImplTest {
         Assertions.assertThrows(NotFoundException.class, () -> service.findById(1L));
     }
 
-    private User getUser(){
+    private User getUser() {
         User user = new User();
         user.setId(1L);
         user.setFirstName("firstName");
@@ -129,8 +132,6 @@ class UserServiceImplTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Captor
-    ArgumentCaptor<Long> captor;
     @Test
     void deleteById() {
         service.deleteById(1L);

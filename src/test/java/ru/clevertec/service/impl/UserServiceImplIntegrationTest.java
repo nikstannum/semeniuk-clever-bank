@@ -17,8 +17,8 @@ import ru.clevertec.web.util.PagingUtil.Paging;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class UserServiceImplIntegrationTest {
-    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
     private static UserService service;
+    private final BaseIntegrationTest baseIntegrationTest = new BaseIntegrationTest();
 
     @BeforeAll
     static void beforeAll() {
