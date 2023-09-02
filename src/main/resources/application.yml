@@ -13,6 +13,6 @@ interest:
   percent: 1
   periodicity: 30
 check:
-  font-path: resources/fonts/tt2020-ascii.ttf
+  font-path: /fonts/tt2020-ascii.ttf
   destination-dir: check
-  format: txt
+  format: pdf

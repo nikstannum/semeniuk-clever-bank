@@ -15,7 +15,7 @@ import ru.clevertec.service.util.serializer.Serializer;
 
 public class StringSerializer implements Serializer {
 
-    public static final String EXTRACT = "Account statement";
+    private static final String EXTRACT = "Account statement";
     private static final int FIELD_WIDTH_FOR_CHECK = 45;
     private static final int STRING_LENGTH_FOR_CHECK = 43;
     private static final int FIELD_WIDTH_FOR_EXTRACT = 63;
@@ -24,7 +24,7 @@ public class StringSerializer implements Serializer {
     private static final int FIELD_AMOUNT_EXTRACT = 12;
     private static final int LEFT_FIELD_WIDTH_FOR_COMMON_INFT = 30;
     private static final int STRING_LENGTH_FOR_COMMON_INF = 60;
-    public static final int RIGHT_FIELD_FOR_COMMON_INF = STRING_LENGTH_FOR_COMMON_INF - LEFT_FIELD_WIDTH_FOR_COMMON_INFT;
+    private static final int RIGHT_FIELD_FOR_COMMON_INF = STRING_LENGTH_FOR_COMMON_INF - LEFT_FIELD_WIDTH_FOR_COMMON_INFT;
     private static final String HORIZON_LINE_EXTRACT = StringUtils.center("", FIELD_WIDTH_FOR_EXTRACT, "-") + "\n";
     private static final String VERT_LINE_START = "| ";
     private static final String VERT_LINE_END = " |\n";
@@ -92,17 +92,20 @@ public class StringSerializer implements Serializer {
                 + StringUtils.leftPad(sumCurrencyStr, STRING_LENGTH_FOR_CHECK - sumStr.length())
                 + VERT_LINE_END;
 
-        return HORIZON_LINE_CHECK +
-                head +
-                checkNum +
-                date +
-                transaction +
-                bankSender +
-                bankRecipient +
-                senderAccountNum +
-                recipientAccountNum +
-                sum +
-                HORIZON_LINE_CHECK;
+        StringBuilder result = new StringBuilder(HORIZON_LINE_CHECK + head + checkNum + date + transaction);
+        if (dto.getBankSender() != null && dto.getBankRecipient() != null) {
+            result.append(bankSender)
+                    .append(bankRecipient)
+                    .append(senderAccountNum)
+                    .append(recipientAccountNum);
+        }
+        if (dto.getBankSender() == null) {
+            result.append(bankRecipient).append(recipientAccountNum);
+        }
+        if (dto.getBankRecipient() == null) {
+            result.append(bankSender).append(senderAccountNum);
+        }
+        return result.append(sum).append(HORIZON_LINE_CHECK).toString();
     }
 
     @Override
